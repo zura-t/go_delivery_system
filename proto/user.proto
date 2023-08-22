@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package proto;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "github.com/zura-t/go_delivery_system/pb";
+
+message User{
+  int64 id = 1;
+  string email = 2;
+  string name = 3;
+  string phone = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message UserId{
+  int64 id = 1;
+}
+
+message CreateUserRequest{
+  string email = 1;
+  string name = 2;
+  string password = 3;
+}
+
+message UpdateUserRequest{
+  int64 id = 1;
+  string name = 2;
+}
+
+message AddPhoneRequest{
+  int64 id = 1;
+  string phone = 2;
+}
+
+service UsersService {
+  rpc CreateUser(CreateUserRequest) returns (User) {
+    option (google.api.http) = {
+            post: "/v1/users"
+            body: "*"
+          };
+          option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description: "Use this API to create a new user";
+            summary: "Create new user";
+          };
+  };
+  rpc GetProfile(UserId) returns (User) {
+    option (google.api.http) = {
+            post: "/v1/users/my_profile"
+          };
+          option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            description: "Use this API to create a new user";
+            summary: "Create new user";
+          };
+  };
+  rpc UpdateUser(UpdateUserRequest) returns (User) {
+    option (google.api.http) = {
+      patch: "/v1/users"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Use this API to create a new user";
+      summary: "Create new user";
+    };
+  };
+  rpc AddPhone(AddPhoneRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      patch: "/v1/users/add_phone"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Use this API to create a new user";
+      summary: "Create new user";
+    };
+  };
+  rpc DeleteUser(UserId) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+    delete: "/v1/users"
+  };
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+    description: "Use this API to create a new user";
+    summary: "Create new user";
+  };
+};
+}
