@@ -27,9 +27,17 @@ message CreateUserRequest{
   string password = 3;
 }
 
+message CreateUserResponse {
+  User user = 1;
+}
+
 message UpdateUserRequest{
   int64 id = 1;
   string name = 2;
+}
+
+message UpdateUserResponse {
+  User user = 1;
 }
 
 message AddPhoneRequest{
@@ -38,7 +46,7 @@ message AddPhoneRequest{
 }
 
 service UsersService {
-  rpc CreateUser(CreateUserRequest) returns (User) {
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
     option (google.api.http) = {
             post: "/v1/users"
             body: "*"
@@ -48,7 +56,7 @@ service UsersService {
             summary: "Create new user";
           };
   };
-  rpc GetProfile(UserId) returns (User) {
+  rpc GetUser(UserId) returns (User) {
     option (google.api.http) = {
             post: "/v1/users/my_profile"
           };
@@ -57,7 +65,7 @@ service UsersService {
             summary: "Create new user";
           };
   };
-  rpc UpdateUser(UpdateUserRequest) returns (User) {
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {
     option (google.api.http) = {
       patch: "/v1/users"
       body: "*"

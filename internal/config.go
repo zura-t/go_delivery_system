@@ -3,8 +3,7 @@ package internal
 import "github.com/spf13/viper"
 
 type Config struct {
-	HttpServerAddress string `mapstructure:"HTTP_SERVER_ADDRESS"`
-	GrpcServerAddress string `mapstructure:"GRPC_SERVER_ADDRESS"`
+	HttpServerAddress   string `mapstructure:"HTTP_SERVER_ADDRESS"`
 	UsersServiceAddress string `mapstructure:"USERS_SERVICE_ADDRESS"`
 }
 

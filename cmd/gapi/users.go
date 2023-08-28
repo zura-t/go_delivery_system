@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/zura-t/go_delivery_system/pb"
+	"github.com/zura-t/go_delivery_system/val"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -11,13 +13,18 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-func (server *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.User, error) {
+func (server *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
+	violations := validateCreateUserRequest(req)
+	if violations != nil {
+		return nil, invalidArgumentError(violations)
+	}
+
 	conn, err := grpc.Dial(server.config.UsersServiceAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to UsersService: %s", err)
 	}
 	defer conn.Close()
-	
+
 	c := pb.NewUsersServiceClient(conn)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -33,6 +40,22 @@ func (server *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest)
 	}
 
 	return user, nil
+}
+
+func validateCreateUserRequest(req *pb.CreateUserRequest) (violations []*errdetails.BadRequest_FieldViolation) {
+	if err := val.ValidateFullName(req.GetName()); err != nil {
+		violations = append(violations, fieldViolation("name", err))
+	}
+
+	if err := val.ValidatePassword(req.GetPassword()); err != nil {
+		violations = append(violations, fieldViolation("password", err))
+	}
+
+	if err := val.ValidateEmail(req.GetEmail()); err != nil {
+		violations = append(violations, fieldViolation("email", err))
+	}
+
+	return violations
 }
 
 func (server *Server) GetProfile(ctx context.Context, req *pb.UserId) (*pb.User, error) {
@@ -58,7 +81,12 @@ func (server *Server) GetProfile(ctx context.Context, req *pb.UserId) (*pb.User,
 	return user, nil
 }
 
-func (server *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.User, error) {
+func (server *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
+	violations := validateUpdateUserRequest(req)
+	if violations != nil {
+		return nil, invalidArgumentError(violations)
+	}
+
 	conn, err := grpc.Dial(server.config.UsersServiceAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to UsersService: %s", err)
@@ -71,7 +99,7 @@ func (server *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest)
 	defer cancel()
 
 	arg := &pb.UpdateUserRequest{
-		Id: req.GetId(),
+		Id:   req.GetId(),
 		Name: req.GetName(),
 	}
 
@@ -81,6 +109,13 @@ func (server *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest)
 	}
 
 	return user, nil
+}
+
+func validateUpdateUserRequest(req *pb.UpdateUserRequest) (violations []*errdetails.BadRequest_FieldViolation) {
+	if err := val.ValidateFullName(req.GetName()); err != nil {
+		violations = append(violations, fieldViolation("name", err))
+	}
+	return violations
 }
 
 func (server *Server) AddPhone(ctx context.Context, req *pb.AddPhoneRequest) (*emptypb.Empty, error) {
@@ -96,7 +131,7 @@ func (server *Server) AddPhone(ctx context.Context, req *pb.AddPhoneRequest) (*e
 	defer cancel()
 
 	arg := &pb.AddPhoneRequest{
-		Id: req.GetId(),
+		Id:    req.GetId(),
 		Phone: req.GetPhone(),
 	}
 
@@ -121,7 +156,7 @@ func (server *Server) DeleteUser(ctx context.Context, req *pb.UserId) (*emptypb.
 	defer cancel()
 
 	arg := &pb.UserId{
-		Id:  req.GetId(),
+		Id: req.GetId(),
 	}
 
 	_, err = c.DeleteUser(ctx, arg)

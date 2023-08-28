@@ -57,7 +57,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/protoUser"
+              "$ref": "#/definitions/protoCreateUserResponse"
             }
           },
           "default": {
@@ -89,7 +89,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/protoUser"
+              "$ref": "#/definitions/protoUpdateUserResponse"
             }
           },
           "default": {
@@ -210,6 +210,14 @@
         }
       }
     },
+    "protoCreateUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/protoUser"
+        }
+      }
+    },
     "protoUpdateUserRequest": {
       "type": "object",
       "properties": {
@@ -219,6 +227,14 @@
         },
         "name": {
           "type": "string"
+        }
+      }
+    },
+    "protoUpdateUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/protoUser"
         }
       }
     },
