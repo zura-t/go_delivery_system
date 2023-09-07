@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -9,10 +10,13 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/rakyll/statik/fs"
 	"github.com/zura-t/go_delivery_system/cmd/gapi"
+	"github.com/zura-t/go_delivery_system/cmd/handlers"
 	"github.com/zura-t/go_delivery_system/internal"
 	"github.com/zura-t/go_delivery_system/pb"
 	_ "github.com/zura-t/simplebank/doc/statik"
+
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {
@@ -22,6 +26,19 @@ func main() {
 	}
 
 	runGatewayServer(config)
+}
+
+func receiveGRPCHeaders() runtime.ServeMuxOption {
+	return runtime.WithForwardResponseOption(func(ctx context.Context, w http.ResponseWriter, m proto.Message) error {
+		method, ok := runtime.RPCMethod(ctx)
+		if !ok {
+			return fmt.Errorf("failed to add metadata in res")
+		}
+		if pb.UsersService_LoginUser_FullMethodName == method {
+			w.Header().Set("Set-Cookie", gapi.GetLoginMetadata().Get("Set-Cookie")[0])
+		}
+		return nil
+	})
 }
 
 func runGatewayServer(config internal.Config) {
@@ -39,7 +56,7 @@ func runGatewayServer(config internal.Config) {
 		},
 	})
 
-	grpcMux := runtime.NewServeMux(jsonOptions)
+	grpcMux := runtime.NewServeMux(jsonOptions, receiveGRPCHeaders())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -51,6 +68,9 @@ func runGatewayServer(config internal.Config) {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", grpcMux)
+
+	mux.Handle("/renew_token", handlers.RenewAccessTokenHandler())
+	mux.Handle("/logout", handlers.LogoutHandler())
 
 	statikFS, err := fs.New()
 	if err != nil {

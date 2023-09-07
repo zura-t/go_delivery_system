@@ -31,6 +31,19 @@ message CreateUserResponse {
   User user = 1;
 }
 
+message LoginUserRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginUserResponse {
+  User user = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  google.protobuf.Timestamp access_token_expires_at = 4;
+  google.protobuf.Timestamp refresh_token_expires_at = 5;
+}
+
 message UpdateUserRequest{
   int64 id = 1;
   string name = 2;
@@ -48,22 +61,32 @@ message AddPhoneRequest{
 service UsersService {
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
     option (google.api.http) = {
-            post: "/v1/users"
-            body: "*"
-          };
-          option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            description: "Use this API to create a new user";
-            summary: "Create new user";
-          };
+      post: "/v1/users"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Use this API to create a new user";
+      summary: "Create new user";
+    };
+  };
+  rpc LoginUser(LoginUserRequest) returns (LoginUserResponse) {
+    option (google.api.http) = {
+      post: "/v1/login"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Use this API to login.";
+      summary: "Login";
+    };
   };
   rpc GetUser(UserId) returns (User) {
     option (google.api.http) = {
-            post: "/v1/users/my_profile"
-          };
-          option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            description: "Use this API to create a new user";
-            summary: "Create new user";
-          };
+      get: "/v1/users/my_profile"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Use this API to get profile";
+      summary: "Get profile";
+    };
   };
   rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {
     option (google.api.http) = {
@@ -71,8 +94,8 @@ service UsersService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      description: "Use this API to create a new user";
-      summary: "Create new user";
+      description: "Use this API to update user";
+      summary: "Update user";
     };
   };
   rpc AddPhone(AddPhoneRequest) returns (google.protobuf.Empty) {
@@ -81,8 +104,8 @@ service UsersService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      description: "Use this API to create a new user";
-      summary: "Create new user";
+      description: "Use this API to add phone number";
+      summary: "Add phone number";
     };
   };
   rpc DeleteUser(UserId) returns (google.protobuf.Empty) {
@@ -90,8 +113,8 @@ service UsersService {
     delete: "/v1/users"
   };
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-    description: "Use this API to create a new user";
-    summary: "Create new user";
+    description: "Use this API to delete profile";
+    summary: "Delete user";
   };
 };
 }

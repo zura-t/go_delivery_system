@@ -16,10 +16,44 @@
     "application/json"
   ],
   "paths": {
+    "/v1/login": {
+      "post": {
+        "summary": "Login",
+        "description": "Use this API to login.",
+        "operationId": "UsersService_LoginUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protoLoginUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/protoLoginUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "UsersService"
+        ]
+      }
+    },
     "/v1/users": {
       "delete": {
-        "summary": "Create new user",
-        "description": "Use this API to create a new user",
+        "summary": "Delete user",
+        "description": "Use this API to delete profile",
         "operationId": "UsersService_DeleteUser",
         "responses": {
           "200": {
@@ -82,8 +116,8 @@
         ]
       },
       "patch": {
-        "summary": "Create new user",
-        "description": "Use this API to create a new user",
+        "summary": "Update user",
+        "description": "Use this API to update user",
         "operationId": "UsersService_UpdateUser",
         "responses": {
           "200": {
@@ -116,8 +150,8 @@
     },
     "/v1/users/add_phone": {
       "patch": {
-        "summary": "Create new user",
-        "description": "Use this API to create a new user",
+        "summary": "Add phone number",
+        "description": "Use this API to add phone number",
         "operationId": "UsersService_AddPhone",
         "responses": {
           "200": {
@@ -150,9 +184,9 @@
       }
     },
     "/v1/users/my_profile": {
-      "post": {
-        "summary": "Create new user",
-        "description": "Use this API to create a new user",
+      "get": {
+        "summary": "Get profile",
+        "description": "Use this API to get profile",
         "operationId": "UsersService_GetUser",
         "responses": {
           "200": {
@@ -215,6 +249,39 @@
       "properties": {
         "user": {
           "$ref": "#/definitions/protoUser"
+        }
+      }
+    },
+    "protoLoginUserRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "protoLoginUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/protoUser"
+        },
+        "accessToken": {
+          "type": "string"
+        },
+        "refreshToken": {
+          "type": "string"
+        },
+        "accessTokenExpiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "refreshTokenExpiresAt": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },

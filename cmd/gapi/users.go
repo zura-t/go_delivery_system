@@ -9,9 +9,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
+
+var md metadata.MD
 
 func (server *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
 	violations := validateCreateUserRequest(req)
@@ -58,7 +61,48 @@ func validateCreateUserRequest(req *pb.CreateUserRequest) (violations []*errdeta
 	return violations
 }
 
-func (server *Server) GetProfile(ctx context.Context, req *pb.UserId) (*pb.User, error) {
+func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (*pb.LoginUserResponse, error) {
+	violations := validateLoginUserRequest(req)
+	if violations != nil {
+		return nil, invalidArgumentError(violations)
+	}
+
+	conn, err := grpc.Dial(server.config.UsersServiceAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to connect to UsersService: %s", err)
+	}
+	defer conn.Close()
+
+	c := pb.NewUsersServiceClient(conn)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	res, err := c.LoginUser(ctx, req, grpc.Header(&md))
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func GetLoginMetadata() *metadata.MD {
+	return &md
+}
+
+func validateLoginUserRequest(req *pb.LoginUserRequest) (violations []*errdetails.BadRequest_FieldViolation) {
+	if err := val.ValidateEmail(req.GetEmail()); err != nil {
+		violations = append(violations, fieldViolation("email", err))
+	}
+
+	if err := val.ValidatePassword(req.GetPassword()); err != nil {
+		violations = append(violations, fieldViolation("password", err))
+	}
+
+	return violations
+}
+
+func (server *Server) GetUser(ctx context.Context, req *pb.UserId) (*pb.User, error) {
 	conn, err := grpc.Dial(server.config.UsersServiceAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to UsersService: %s", err)
