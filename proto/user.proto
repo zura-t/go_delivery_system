@@ -2,10 +2,8 @@ syntax = "proto3";
 
 package proto;
 
-import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
-import "protoc-gen-openapiv2/options/annotations.proto";
 
 option go_package = "github.com/zura-t/go_delivery_system/pb";
 
@@ -59,62 +57,10 @@ message AddPhoneRequest{
 }
 
 service UsersService {
-  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
-    option (google.api.http) = {
-      post: "/v1/users"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      description: "Use this API to create a new user";
-      summary: "Create new user";
-    };
-  };
-  rpc LoginUser(LoginUserRequest) returns (LoginUserResponse) {
-    option (google.api.http) = {
-      post: "/v1/login"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      description: "Use this API to login.";
-      summary: "Login";
-    };
-  };
-  rpc GetUser(UserId) returns (User) {
-    option (google.api.http) = {
-      get: "/v1/users/my_profile"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      description: "Use this API to get profile";
-      summary: "Get profile";
-    };
-  };
-  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {
-    option (google.api.http) = {
-      patch: "/v1/users"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      description: "Use this API to update user";
-      summary: "Update user";
-    };
-  };
-  rpc AddPhone(AddPhoneRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      patch: "/v1/users/add_phone"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      description: "Use this API to add phone number";
-      summary: "Add phone number";
-    };
-  };
-  rpc DeleteUser(UserId) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-    delete: "/v1/users"
-  };
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-    description: "Use this API to delete profile";
-    summary: "Delete user";
-  };
-};
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {};
+  rpc LoginUser(LoginUserRequest) returns (LoginUserResponse) {};
+  rpc GetUser(UserId) returns (User) {};
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {};
+  rpc AddPhone(AddPhoneRequest) returns (google.protobuf.Empty) {};
+  rpc DeleteUser(UserId) returns (google.protobuf.Empty) {};
 }
