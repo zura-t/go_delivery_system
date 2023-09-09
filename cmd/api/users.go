@@ -3,11 +3,13 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zura-t/go_delivery_system/pb"
+	"github.com/zura-t/go_delivery_system/token"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -43,7 +45,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	c := pb.NewUsersServiceClient(conn)
 
-	context, cancel := context.WithCancel(context.Background())
+	context, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	user, err := c.CreateUser(context, &pb.CreateUserRequest{
@@ -88,7 +90,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	c := pb.NewUsersServiceClient(conn)
 
-	context, cancel := context.WithCancel(context.Background())
+	context, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	res, err := c.LoginUser(context, &pb.LoginUserRequest{
@@ -99,18 +101,25 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
-
+	ctx.SetCookie("refresh_token", res.RefreshToken, int(res.RefreshTokenExpiresAt.AsTime().Sub(time.Now())), "/", "localhost", false, true)
 	ctx.JSON(http.StatusOK, res)
 }
 
-type getUserRequest struct {
-	ID int64 `uri:"id" binding:"required,min=1"`
-}
-
-func (server *Server) getUser(ctx *gin.Context) {
-	var req getUserRequest
-	if err := ctx.ShouldBindUri(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+func (server *Server) getMyProfile(ctx *gin.Context) {
+	var payload token.Payload
+	log.Println(ctx)
+	payloadData, exists := ctx.Get(authorizationPayloadKey)
+	if !exists {
+		error := fmt.Errorf("couldn't get payload from authtoken")
+		ctx.JSON(http.StatusInternalServerError, errorResponse(error))
+		return
+	}
+	data, ok := payloadData.(token.Payload)
+	if ok {
+		payload = data
+	} else {
+		error := fmt.Errorf("couldn't get payload from authtoken")
+		ctx.JSON(http.StatusInternalServerError, errorResponse(error))
 		return
 	}
 
@@ -128,7 +137,7 @@ func (server *Server) getUser(ctx *gin.Context) {
 	defer cancel()
 
 	arg := &pb.UserId{
-		Id: req.ID,
+		Id: payload.UserId,
 	}
 	user, err := c.GetUser(context, arg)
 	if err != nil {
@@ -140,13 +149,21 @@ func (server *Server) getUser(ctx *gin.Context) {
 
 }
 
+type userIdParam struct {
+	ID int64 `uri:"id"  binding:"required,min=1"`
+}
+
 type updateUserRequest struct {
-	ID   int64  `json:"id" binding:"required,min=1"`
 	Name string `json:"name" binding:"required"`
 }
 
 func (server *Server) updateUser(ctx *gin.Context) {
 	var req updateUserRequest
+	var params userIdParam
+	if err := ctx.ShouldBindUri(&params); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
@@ -162,11 +179,11 @@ func (server *Server) updateUser(ctx *gin.Context) {
 
 	c := pb.NewUsersServiceClient(conn)
 
-	context, cancel := context.WithCancel(context.Background())
+	context, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	arg := &pb.UpdateUserRequest{
-		Id:   req.ID,
+		Id:   params.ID,
 		Name: req.Name,
 	}
 
@@ -180,13 +197,17 @@ func (server *Server) updateUser(ctx *gin.Context) {
 }
 
 type addPhoneRequest struct {
-	ID    int64  `uri:"id" binding:"required,min=1"`
-	Phone string `json:"phone" binding:"required,phone"`
+	Phone string `json:"phone" binding:"required"`
 }
 
 func (server *Server) addPhone(ctx *gin.Context) {
 	var req addPhoneRequest
-	if err := ctx.ShouldBindUri(&req); err != nil {
+	var params userIdParam
+	if err := ctx.ShouldBindUri(&params); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
@@ -201,11 +222,11 @@ func (server *Server) addPhone(ctx *gin.Context) {
 
 	c := pb.NewUsersServiceClient(conn)
 
-	context, cancel := context.WithCancel(context.Background())
+	context, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	arg := &pb.AddPhoneRequest{
-		Id:    req.ID,
+		Id:    params.ID,
 		Phone: req.Phone,
 	}
 
@@ -215,7 +236,7 @@ func (server *Server) addPhone(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, nil)
+	ctx.JSON(http.StatusOK, "Phone has been added")
 }
 
 type deleteUserRequest struct {
@@ -238,7 +259,7 @@ func (server *Server) deleteUser(ctx *gin.Context) {
 
 	c := pb.NewUsersServiceClient(conn)
 
-	context, cancel := context.WithCancel(context.Background())
+	context, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	arg := &pb.UserId{
@@ -251,5 +272,10 @@ func (server *Server) deleteUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, nil)
+	ctx.JSON(http.StatusOK, "User was deleted")
+}
+
+func (server *Server) logout(ctx *gin.Context) {
+	ctx.SetCookie("refresh_token", "", -1, "/", "localhost", false, true)
+	ctx.JSON(http.StatusOK, "logged out")
 }

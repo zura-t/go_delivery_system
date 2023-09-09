@@ -32,12 +32,14 @@ func (server *Server) setupRouter() {
 	router := gin.Default()
 	router.POST("/users", server.createUser)
 	router.POST("/login", server.loginUser)
+	router.POST("/logout", server.logout)
+	router.POST("/renew_token", server.renewAccessToken)
 
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 
-	authRoutes.GET("/users/my_profile", server.getUser)
-	router.PATCH("/users", server.updateUser)
-	authRoutes.PATCH("/users/phone_number", server.addPhone)
+	authRoutes.GET("/users/my_profile", server.getMyProfile)
+	authRoutes.PATCH("/users/:id", server.updateUser)
+	authRoutes.PATCH("/users/phone_number/:id", server.addPhone)
 	authRoutes.DELETE("/users/:id", server.deleteUser)
 
 	server.router = router
