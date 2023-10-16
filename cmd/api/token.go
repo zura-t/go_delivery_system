@@ -12,7 +12,7 @@ type renewAccessTokenResponse struct {
 	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
 }
 
-func (server *Server) renewAccessToken(ctx *gin.Context) {
+func (server *Server) RenewAccessToken(ctx *gin.Context) {
 	refreshToken, err := ctx.Cookie("refresh_token")
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))

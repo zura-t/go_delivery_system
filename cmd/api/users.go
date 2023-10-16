@@ -1,26 +1,24 @@
 package api
 
 import (
-	"context"
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"log"
+	"io/ioutil"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/zura-t/go_delivery_system/pb"
 	"github.com/zura-t/go_delivery_system/token"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
-type createUserRequest struct {
+type CreateUserRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 	Name     string `json:"name" binding:"required"`
 }
 
-type userResponse struct {
+type UserResponse struct {
 	Id        int64     `json:"id"`
 	Email     string    `json:"email"`
 	Name      string    `json:"name"`
@@ -28,86 +26,122 @@ type userResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func (server *Server) createUser(ctx *gin.Context) {
-	var req createUserRequest
+func (server *Server) CreateUser(ctx *gin.Context) {
+	var req CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	conn, err := grpc.Dial(server.config.UsersServiceAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	data, err := json.Marshal(req)
 	if err != nil {
-		error := fmt.Errorf("failed to connect to UsersService: %s", err)
-		ctx.JSON(http.StatusInternalServerError, errorResponse(error))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	defer conn.Close()
 
-	c := pb.NewUsersServiceClient(conn)
-
-	context, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	user, err := c.CreateUser(context, &pb.CreateUserRequest{
-		Email:    req.Email,
-		Password: req.Password,
-		Name:     req.Name,
-	})
+	url := fmt.Sprintf("%s/users", server.config.UsersServiceAddress)
+	request, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
+	request.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	res, err := client.Do(request)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	if res.StatusCode != 200 {
+		errorMessage, err := httpErrorResponse(res.Body)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+		ctx.JSON(res.StatusCode, errorMessage)
+		return
+	}
+	defer res.Body.Close()
+
+	var user UserResponse
+	newUser, err := ioutil.ReadAll(res.Body)
+	err = json.Unmarshal(newUser, &user)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
 	ctx.JSON(http.StatusOK, user)
 }
 
-type loginUserRequest struct {
+type LoginUserRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 }
 
-type loginUserResponse struct {
+type LoginUserResponse struct {
 	AccessToken           string       `json:"access_token"`
 	AccessTokenExpiresAt  time.Time    `json:"access_token_expires_at"`
 	RefreshToken          string       `json:"refresh_token"`
 	RefreshTokenExpiresAt time.Time    `json:"refresh_token_expires_at"`
-	User                  userResponse `json:"user"`
+	User                  UserResponse `json:"user"`
 }
 
-func (server *Server) loginUser(ctx *gin.Context) {
-	var req loginUserRequest
+func (server *Server) LoginUser(ctx *gin.Context) {
+	var req LoginUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	conn, err := grpc.Dial(server.config.UsersServiceAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithTimeout(5*time.Second), grpc.WithBlock())
+	data, err := json.Marshal(req)
 	if err != nil {
-		error := fmt.Errorf("failed to connect to UsersService: %s", err)
-		ctx.JSON(http.StatusInternalServerError, errorResponse(error))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	defer conn.Close()
 
-	c := pb.NewUsersServiceClient(conn)
+	url := fmt.Sprintf("%s/users/login", server.config.UsersServiceAddress)
+	request, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
 
-	context, cancel := context.WithCancel(ctx)
-	defer cancel()
+	request.Header.Set("Content-Type", "application/json")
 
-	res, err := c.LoginUser(context, &pb.LoginUserRequest{
-		Email:    req.Email,
-		Password: req.Password,
-	})
+	client := &http.Client{}
+	res, err := client.Do(request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
-	ctx.SetCookie("refresh_token", res.RefreshToken, int(res.RefreshTokenExpiresAt.AsTime().Sub(time.Now())), "/", "localhost", false, true)
-	ctx.JSON(http.StatusOK, res)
+	if res.StatusCode != 200 {
+		errorMessage, err := httpErrorResponse(res.Body)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+		ctx.JSON(res.StatusCode, errorMessage)
+		return
+	}
+	defer res.Body.Close()
+
+	var user LoginUserResponse
+	response, err := ioutil.ReadAll(res.Body)
+	err = json.Unmarshal(response, &user)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.SetCookie("refresh_token", user.RefreshToken, int(time.Until(user.RefreshTokenExpiresAt).Seconds()), "/", "localhost", false, true)
+	ctx.JSON(http.StatusOK, user)
 }
 
-func (server *Server) getMyProfile(ctx *gin.Context) {
+func (server *Server) GetMyProfile(ctx *gin.Context) {
 	var payload token.Payload
-	log.Println(ctx)
 	payloadData, exists := ctx.Get(authorizationPayloadKey)
 	if !exists {
 		error := fmt.Errorf("couldn't get payload from authtoken")
@@ -123,43 +157,55 @@ func (server *Server) getMyProfile(ctx *gin.Context) {
 		return
 	}
 
-	conn, err := grpc.Dial(server.config.UsersServiceAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithTimeout(5*time.Second), grpc.WithBlock())
+	url := fmt.Sprintf("%s/users/%d", server.config.UsersServiceAddress, payload.UserId)
+	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		error := fmt.Errorf("failed to connect to UsersService: %s", err)
-		ctx.JSON(http.StatusInternalServerError, errorResponse(error))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	defer conn.Close()
 
-	c := pb.NewUsersServiceClient(conn)
+	request.Header.Set("Content-Type", "application/json")
 
-	context, cancel := context.WithCancel(ctx)
-	defer cancel()
+	client := &http.Client{}
 
-	arg := &pb.UserId{
-		Id: payload.UserId,
-	}
-	user, err := c.GetUser(context, arg)
+	res, err := client.Do(request)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	if res.StatusCode != 200 {
+		errorMessage, err := httpErrorResponse(res.Body)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+		ctx.JSON(res.StatusCode, errorMessage)
+		return
+	}
+	defer res.Body.Close()
+
+	var user UserResponse
+	response, err := ioutil.ReadAll(res.Body)
+	err = json.Unmarshal(response, &user)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, user)
-
 }
 
-type userIdParam struct {
-	ID int64 `uri:"id"  binding:"required,min=1"`
+type UserIdParam struct {
+	Id int64 `uri:"id"  binding:"required,min=1"`
 }
 
-type updateUserRequest struct {
+type UpdateUserRequest struct {
 	Name string `json:"name" binding:"required"`
 }
 
-func (server *Server) updateUser(ctx *gin.Context) {
-	var req updateUserRequest
-	var params userIdParam
+func (server *Server) UpdateUser(ctx *gin.Context) {
+	var req UpdateUserRequest
+	var params UserIdParam
 	if err := ctx.ShouldBindUri(&params); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
@@ -169,40 +215,54 @@ func (server *Server) updateUser(ctx *gin.Context) {
 		return
 	}
 
-	conn, err := grpc.Dial(server.config.UsersServiceAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithTimeout(5*time.Second), grpc.WithBlock())
-	if err != nil {
-		error := fmt.Errorf("failed to connect to UsersService: %s", err)
-		ctx.JSON(http.StatusInternalServerError, errorResponse(error))
-		return
-	}
-	defer conn.Close()
-
-	c := pb.NewUsersServiceClient(conn)
-
-	context, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	arg := &pb.UpdateUserRequest{
-		Id:   params.ID,
+	newUser := &UpdateUserRequest{
 		Name: req.Name,
 	}
 
-	user, err := c.UpdateUser(context, arg)
+	arg, err := json.Marshal(newUser)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
+	url := fmt.Sprintf("%s/users/%d", server.config.UsersServiceAddress, params.Id)
+	request, err := http.NewRequest("PATCH", url, bytes.NewBuffer(arg))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	request.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	res, err := client.Do(request)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	if res.StatusCode != 200 {
+		errorMessage, err := httpErrorResponse(res.Body)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+		ctx.JSON(res.StatusCode, errorMessage)
+		return
+	}
+	defer res.Body.Close()
+
+	var user UserResponse
+	response, err := ioutil.ReadAll(res.Body)
+	err = json.Unmarshal(response, &user)
 
 	ctx.JSON(http.StatusOK, user)
 }
 
-type addPhoneRequest struct {
+type AddPhoneRequest struct {
 	Phone string `json:"phone" binding:"required"`
 }
 
-func (server *Server) addPhone(ctx *gin.Context) {
-	var req addPhoneRequest
-	var params userIdParam
+func (server *Server) AddPhone(ctx *gin.Context) {
+	var req AddPhoneRequest
+	var params UserIdParam
 	if err := ctx.ShouldBindUri(&params); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
@@ -212,70 +272,86 @@ func (server *Server) addPhone(ctx *gin.Context) {
 		return
 	}
 
-	conn, err := grpc.Dial(server.config.UsersServiceAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithTimeout(5*time.Second), grpc.WithBlock())
-	if err != nil {
-		error := fmt.Errorf("failed to connect to UsersService: %s", err)
-		ctx.JSON(http.StatusInternalServerError, errorResponse(error))
-		return
-	}
-	defer conn.Close()
-
-	c := pb.NewUsersServiceClient(conn)
-
-	context, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	arg := &pb.AddPhoneRequest{
-		Id:    params.ID,
+	userData := &AddPhoneRequest{
 		Phone: req.Phone,
 	}
 
-	_, err = c.AddPhone(context, arg)
+	arg, err := json.Marshal(userData)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	url := fmt.Sprintf("%s/users/phone_number/%d", server.config.UsersServiceAddress, params.Id)
+	request, err := http.NewRequest("PATCH", url, bytes.NewBuffer(arg))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	request.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+
+	res, err := client.Do(request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+	if res.StatusCode != 200 {
+		errorMessage, err := httpErrorResponse(res.Body)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+		ctx.JSON(res.StatusCode, errorMessage)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, "Phone has been added")
 }
 
-type deleteUserRequest struct {
-	ID int64 `uri:"id" binding:"required,min=1"`
+type DeleteUserRequest struct {
+	Id int64 `uri:"id" binding:"required,min=1"`
 }
 
-func (server *Server) deleteUser(ctx *gin.Context) {
-	var req deleteUserRequest
+func (server *Server) DeleteUser(ctx *gin.Context) {
+	var req DeleteUserRequest
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-	conn, err := grpc.Dial(server.config.UsersServiceAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithTimeout(5*time.Second), grpc.WithBlock())
+
+	url := fmt.Sprintf("%s/users/%d", server.config.UsersServiceAddress, req.Id)
+	request, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
-		error := fmt.Errorf("failed to connect to UsersService: %s", err)
-		ctx.JSON(http.StatusInternalServerError, errorResponse(error))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	defer conn.Close()
 
-	c := pb.NewUsersServiceClient(conn)
+	request.Header.Set("Content-Type", "application/json")
 
-	context, cancel := context.WithCancel(ctx)
-	defer cancel()
+	client := &http.Client{}
 
-	arg := &pb.UserId{
-		Id: req.ID,
-	}
-
-	_, err = c.DeleteUser(context, arg)
+	res, err := client.Do(request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	if res.StatusCode != 200 {
+		errorMessage, err := httpErrorResponse(res.Body)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+		ctx.JSON(res.StatusCode, errorMessage)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, "User was deleted")
 }
 
-func (server *Server) logout(ctx *gin.Context) {
+func (server *Server) Logout(ctx *gin.Context) {
 	ctx.SetCookie("refresh_token", "", -1, "/", "localhost", false, true)
 	ctx.JSON(http.StatusOK, "logged out")
 }
