@@ -1,4 +1,4 @@
-package api
+package v1
 
 import (
 	"errors"
@@ -18,7 +18,7 @@ const (
 
 func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 	abort := func(ctx *gin.Context, err error) {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		errorResponse(ctx, http.StatusUnauthorized, "Token has been expired")
 		ctx.Abort()
 	}
 
