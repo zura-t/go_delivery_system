@@ -1,4 +1,4 @@
-package httpserver
+package httpclient
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func SendHttpRequest(req any, method string, url string) (*http.Response, error) {
+func NewHttpRequest(req any, method string, url string) (*http.Request, error) {
 	var body io.Reader
 	if req != nil {
 		data, err := json.Marshal(req)
@@ -26,6 +26,5 @@ func SendHttpRequest(req any, method string, url string) (*http.Response, error)
 
 	request.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-	return client.Do(request)
+	return request, nil
 }

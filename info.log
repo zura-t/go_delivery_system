@@ -1,0 +1,4 @@
+{"level":"error","msg":"Post \"http://127.0.0.1:8081/users\": EOF [http - v1 - user routes]","time":"2023-12-05T23:38:41+06:00"}{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2023-12-07T18:26:36+06:00"}
+{"level":"error","msg":"token has expired [http - v1 - renewAccessToken - server.tokenMaker.VerifyToken]","time":"2023-12-07T18:27:45+06:00"}
+{"level":"error","msg":"Post \"http://127.0.0.1:8081/users\": EOF [http - v1 - user routes - createUser]","time":"2023-12-07T18:28:06+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2023-12-07T18:35:31+06:00"}

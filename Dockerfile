@@ -1,7 +1,12 @@
-FROM alpine:latest
+FROM golang:1.20
 
-RUN mkdir /app
+WORKDIR /bin
 
-COPY apiGateway /app
+COPY . .
+RUN go mod download
 
-CMD ["/app/apiGateway"]
+RUN go build -o /bin/apiGateway ./cmd/app/main.go
+
+EXPOSE 8080
+
+CMD ["/bin/apiGateway"]

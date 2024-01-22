@@ -48,6 +48,7 @@ type CreateUserRequest struct {
 func (r *userRoutes) createUser(ctx *gin.Context) {
 	var req CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		r.logger.Error(err, "http - v1 - user routes - createUser")
 		errorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -58,6 +59,7 @@ func (r *userRoutes) createUser(ctx *gin.Context) {
 		Name:     req.Name,
 	})
 	if err != nil {
+		r.logger.Error(err, "http - v1 - user routes - createUser")
 		errorResponse(ctx, st, err.Error())
 		return
 	}
@@ -81,12 +83,14 @@ type LoginUserResponse struct {
 func (r *userRoutes) loginUser(ctx *gin.Context) {
 	var req LoginUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		r.logger.Error(err, "http - v1 - user routes - loginUser")
 		errorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	user, st, err := r.userUsecase.LoginUser(entity.UserLogin{Email: req.Email, Password: req.Password})
 	if err != nil {
+		r.logger.Error(err, "http - v1 - user routes - loginUser")
 		errorResponse(ctx, st, err.Error())
 		return
 	}
@@ -110,6 +114,7 @@ func (r *userRoutes) getMyProfile(ctx *gin.Context) {
 	payload := getJWTPayload(ctx)
 	user, st, err := r.userUsecase.GetMyProfile(payload.UserId)
 	if err != nil {
+		r.logger.Error(err, "http - v1 - user routes - getMyProfile")
 		errorResponse(ctx, st, err.Error())
 		return
 	}
@@ -125,6 +130,7 @@ func (r *userRoutes) updateUser(ctx *gin.Context) {
 	payload := getJWTPayload(ctx)
 	var req UpdateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		r.logger.Error(err, "http - v1 - user routes - updateUser")
 		errorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -133,6 +139,7 @@ func (r *userRoutes) updateUser(ctx *gin.Context) {
 		Name: req.Name,
 	})
 	if err != nil {
+		r.logger.Error(err, "http - v1 - user routes - updateUser")
 		errorResponse(ctx, st, err.Error())
 		return
 	}
@@ -148,6 +155,7 @@ func (r *userRoutes) addPhone(ctx *gin.Context) {
 	payload := getJWTPayload(ctx)
 	var req AddPhoneRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		r.logger.Error(err, "http - v1 - user routes - addPhone")
 		errorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -156,6 +164,7 @@ func (r *userRoutes) addPhone(ctx *gin.Context) {
 		Phone: req.Phone,
 	})
 	if err != nil {
+		r.logger.Error(err, "http - v1 - user routes - addPhone")
 		errorResponse(ctx, st, err.Error())
 		return
 	}
@@ -167,6 +176,7 @@ func (r *userRoutes) deleteUser(ctx *gin.Context) {
 	payload := getJWTPayload(ctx)
 	res, st, err := r.userUsecase.DeleteUser(payload.UserId)
 	if err != nil {
+		r.logger.Error(err, "http - v1 - user routes - deleteUser")
 		errorResponse(ctx, st, err.Error())
 		return
 	}

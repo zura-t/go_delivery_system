@@ -7,20 +7,26 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/elastic/go-elasticsearch"
 	"github.com/gin-gonic/gin"
-	// amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/zura-t/go_delivery_system/config"
 	v1 "github.com/zura-t/go_delivery_system/internal/controller/http/v1"
 	"github.com/zura-t/go_delivery_system/internal/usecase"
+	"github.com/zura-t/go_delivery_system/internal/usecase/webapi"
 	"github.com/zura-t/go_delivery_system/pkg/httpserver"
 	"github.com/zura-t/go_delivery_system/pkg/logger"
-	// "github.com/zura-t/go_delivery_system/rmq"
 )
 
 func Run(cfg *config.Config) {
 	l := logger.New(cfg.LogLevel)
-
-	usersUseCase := usecase.New(cfg)
+	esClient, err := elasticsearch.NewDefaultClient()
+	if err != nil {
+		l.Fatal("Connection failed")
+		os.Exit(1)
+	}
+	_ = esClient
+	webapi := webapi.New(cfg)
+	usersUseCase := usecase.New(cfg, webapi)
 
 	// rmqRouter := amqprpc.NewRouter(translationUseCase)
 
@@ -34,13 +40,14 @@ func Run(cfg *config.Config) {
 
 func runGinServer(l *logger.Logger, cfg *config.Config, usersUseCase *usecase.UserUseCase) {
 	handler := gin.New()
-	server, err := v1.New(cfg)
+	server, err := v1.New(cfg, l)
 	if err != nil {
-		log.Fatalf("can't create server: %s", err)
+		l.Fatal(fmt.Errorf("app - Run - runGinServer: %w", err))
+		os.Exit(1)
 	}
 	server.NewRouter(handler, l, usersUseCase)
 	httpServer := httpserver.New(handler, httpserver.Port(cfg.HttpPort))
-	log.Printf("server started on port %s", cfg.HttpPort)
+	log.Print(fmt.Sprintf("server started on port %s", cfg.HttpPort))
 
 	// Waiting signal
 	interrupt := make(chan os.Signal, 1)
@@ -48,8 +55,10 @@ func runGinServer(l *logger.Logger, cfg *config.Config, usersUseCase *usecase.Us
 
 	select {
 	case s := <-interrupt:
+		log.Print(s.String())
 		l.Info("app - Run - signal: " + s.String())
 	case err := <-httpServer.Notify():
+		log.Fatal(err)
 		l.Error(fmt.Errorf("app - Run - httpServer.Notify: %w", err))
 		// case err := <-rmqServer.Notify():
 		// 	l.Error(fmt.Errorf("app - Run - rmqServer.Notify: %w", err))
@@ -58,6 +67,7 @@ func runGinServer(l *logger.Logger, cfg *config.Config, usersUseCase *usecase.Us
 	// Shutdown
 	err = httpServer.Shutdown()
 	if err != nil {
+		log.Fatal(err)
 		l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
 	}
 

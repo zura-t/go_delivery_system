@@ -1,0 +1,52 @@
+version: "3"
+
+services:
+  api-service:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: always
+    ports:
+      - "8080:8080"
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  filebeat:
+    image: "docker.elastic.co/beats/filebeat:7.10.2"
+    volumes:
+      - ./filebeat.yml:/etc/filebeat/filebeat.yml
+    depends_on:
+      - elasticsearch
+
+  elasticsearch:
+    image: "docker.elastic.co/elasticsearch/elasticsearch:7.10.2"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+    volumes:
+      - ./esdata:/usr/share/elasticsearch/data
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.10.2
+    volumes:
+      - ./logstash/config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: "docker.elastic.co/kibana/kibana:7.10.2"
+    # healthcheck:
+    #   test: ["CMD", "curl", "-s", "-f", "http://localhost:5601/api/status"]
+    #   interval: 3s
+    #   timeout: 3s
+    #   retries: 80
+    environment:
+      - ELASTICSEARCH_URL=http://localhost:9200
+    ports:
+      - "5601:5601"
+    hostname: kibana
+    depends_on:
+      - elasticsearch

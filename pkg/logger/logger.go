@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/rs/zerolog"
+	log "github.com/sirupsen/logrus"
 )
 
 // Interface -.
@@ -19,74 +19,79 @@ type Interface interface {
 
 // Logger -.
 type Logger struct {
-	logger *zerolog.Logger
+	logger *log.Logger
 }
 
 var _ Interface = (*Logger)(nil)
 
 // New -.
 func New(level string) *Logger {
-	var l zerolog.Level
+	var l log.Level
 
 	switch strings.ToLower(level) {
 	case "error":
-		l = zerolog.ErrorLevel
+		l = log.ErrorLevel
 	case "warn":
-		l = zerolog.WarnLevel
+		l = log.WarnLevel
 	case "info":
-		l = zerolog.InfoLevel
+		l = log.InfoLevel
 	case "debug":
-		l = zerolog.DebugLevel
+		l = log.DebugLevel
 	default:
-		l = zerolog.InfoLevel
+		l = log.InfoLevel
 	}
 
-	zerolog.SetGlobalLevel(l)
+	file, err := os.OpenFile("info.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	skipFrameCount := 3
-	logger := zerolog.New(os.Stdout).With().Timestamp().CallerWithSkipFrameCount(zerolog.CallerSkipFrameCount + skipFrameCount).Logger()
+	logger := log.New()
+	logger.SetOutput(file)
+	logger.Formatter = &log.JSONFormatter{}
+	logger.Hooks = make(log.LevelHooks)
+	logger.Level = l
 
 	return &Logger{
-		logger: &logger,
+		logger: logger,
 	}
 }
 
 // Debug -.
 func (l *Logger) Debug(message interface{}, args ...interface{}) {
-	l.msg("debug", message, args...)
+	l.msg("debug", message, args)
 }
 
 // Info -.
 func (l *Logger) Info(message string, args ...interface{}) {
-	l.log(message, args...)
+	l.log(message, args)
 }
 
 // Warn -.
 func (l *Logger) Warn(message string, args ...interface{}) {
-	l.log(message, args...)
+	l.log(message, args)
 }
 
 // Error -.
 func (l *Logger) Error(message interface{}, args ...interface{}) {
-	if l.logger.GetLevel() == zerolog.DebugLevel {
-		l.Debug(message, args...)
+	if l.logger.GetLevel() == log.DebugLevel {
+		l.logger.Debug(message, args)
 	}
-
-	l.msg("error", message, args...)
+	l.logger.Error(message, args)
 }
 
 // Fatal -.
 func (l *Logger) Fatal(message interface{}, args ...interface{}) {
 	l.msg("fatal", message, args...)
-
-	os.Exit(1)
 }
 
 func (l *Logger) log(message string, args ...interface{}) {
 	if len(args) == 0 {
-		l.logger.Info().Msg(message)
+		l.logger.Info(message)
+		l.logger.WithField("message", message)
 	} else {
-		l.logger.Info().Msgf(message, args...)
+		l.logger.Info(message, args)
+		l.logger.WithField("message", message)
 	}
 }
 

@@ -16,18 +16,21 @@ type renewAccessTokenResponse struct {
 func (server *Server) renewAccessToken(ctx *gin.Context) {
 	refreshToken, err := ctx.Cookie("refresh_token")
 	if err != nil {
+		server.l.Error(err, "http - v1 - renewAccessToken - context cookie")
 		errorResponse(ctx, http.StatusUnauthorized, "can't renew the token")
 		return
 	}
 
 	refreshPayload, err := server.tokenMaker.VerifyToken(refreshToken)
 	if err != nil {
+		server.l.Error(err,"http - v1 - renewAccessToken - server.tokenMaker.VerifyToken")
 		errorResponse(ctx, http.StatusUnauthorized, err.Error())
 		return
 	}
 
 	accessToken, accessPayload, err := server.tokenMaker.CreateToken(refreshPayload.UserId, refreshPayload.Email, server.config.AccessTokenDuration)
 	if err != nil {
+		server.l.Error(err, "http - v1 - renewAccessToken - server.tokenMaker.CreateToken")
 		errorResponse(ctx, http.StatusInternalServerError, "can't create new token")
 		return
 	}
