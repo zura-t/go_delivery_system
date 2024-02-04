@@ -17,8 +17,7 @@ type UserWebAPI struct {
 	config *config.Config
 }
 
-// New -.
-func New(config *config.Config) *UserWebAPI {
+func NewUserWebAPI(config *config.Config) *UserWebAPI {
 	return &UserWebAPI{
 		client: &http.Client{},
 		config: config,
@@ -83,11 +82,11 @@ func (webapi *UserWebAPI) LoginUser(req entity.UserLogin) (entity.UserLoginRespo
 	defer res.Body.Close()
 
 	var user entity.UserLoginResponse
-	newUser, err := io.ReadAll(res.Body)
+	resp, err := io.ReadAll(res.Body)
 	if err != nil {
 		return entity.UserLoginResponse{}, http.StatusInternalServerError, err
 	}
-	err = json.Unmarshal(newUser, &user)
+	err = json.Unmarshal(resp, &user)
 	if err != nil {
 		return entity.UserLoginResponse{}, http.StatusInternalServerError, err
 	}
@@ -117,15 +116,50 @@ func (webapi *UserWebAPI) GetMyProfile(id int64) (entity.User, int, error) {
 	defer res.Body.Close()
 
 	var user entity.User
-	newUser, err := io.ReadAll(res.Body)
+	resp, err := io.ReadAll(res.Body)
 	if err != nil {
 		return entity.User{}, http.StatusInternalServerError, err
 	}
-	err = json.Unmarshal(newUser, &user)
+	err = json.Unmarshal(resp, &user)
 	if err != nil {
 		return entity.User{}, http.StatusInternalServerError, err
 	}
 	return user, http.StatusOK, nil
+}
+
+func (webapi *UserWebAPI) AddAdminRole(id int64) (string, int, error) {
+	url := fmt.Sprintf("%s/users/admin/%d", webapi.config.UsersServiceAddress, id)
+
+	httpRequest, err := httpclient.NewHttpRequest(nil, http.MethodPatch, url)
+	if err != nil {
+		return "", http.StatusInternalServerError, err
+	}
+
+	res, err := httpclient.Client.Do(httpRequest)
+
+	if err != nil {
+		return "", http.StatusInternalServerError, err
+	}
+	if res.StatusCode != 200 {
+		errorMessage, err := httpserver.HttpErrorResponse(res.Body)
+		if err != nil {
+			return "", http.StatusInternalServerError, err
+		}
+		err = fmt.Errorf("Error: %s", errorMessage)
+		return "", res.StatusCode, err
+	}
+	defer res.Body.Close()
+
+	var resp string
+	resData, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", http.StatusInternalServerError, err
+	}
+	err = json.Unmarshal(resData, &resp)
+	if err != nil {
+		return "", http.StatusInternalServerError, err
+	}
+	return resp, http.StatusOK, nil
 }
 
 func (webapi *UserWebAPI) UpdateUser(id int64, req entity.UserUpdate) (entity.User, int, error) {

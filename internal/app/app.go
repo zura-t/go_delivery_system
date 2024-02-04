@@ -25,8 +25,8 @@ func Run(cfg *config.Config) {
 		os.Exit(1)
 	}
 	_ = esClient
-	webapi := webapi.New(cfg)
-	usersUseCase := usecase.New(cfg, webapi)
+	webapi := webapi.NewUserWebAPI(cfg)
+	usersUseCase := usecase.NewUserUseCase(cfg, webapi)
 
 	// rmqRouter := amqprpc.NewRouter(translationUseCase)
 

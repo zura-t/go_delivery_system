@@ -25,6 +25,7 @@ func (server *Server) newUserRoutes(handler *gin.RouterGroup, userUsecase usecas
 
 	authRoutes := handler.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRoutes.GET("/users/my_profile", routes.getMyProfile)
+	authRoutes.PATCH("/users/admin", routes.addAdminRole)
 	authRoutes.PATCH("/users/", routes.updateUser)
 	authRoutes.PATCH("/users/phone_number/", routes.addPhone)
 	authRoutes.DELETE("/users/", routes.deleteUser)
@@ -115,6 +116,18 @@ func (r *userRoutes) getMyProfile(ctx *gin.Context) {
 	user, st, err := r.userUsecase.GetMyProfile(payload.UserId)
 	if err != nil {
 		r.logger.Error(err, "http - v1 - user routes - getMyProfile")
+		errorResponse(ctx, st, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, user)
+}
+
+func (r *userRoutes) addAdminRole(ctx *gin.Context) {
+	payload := getJWTPayload(ctx)
+
+	user, st, err := r.userUsecase.AddAdminRole(payload.UserId)
+	if err != nil {
 		errorResponse(ctx, st, err.Error())
 		return
 	}

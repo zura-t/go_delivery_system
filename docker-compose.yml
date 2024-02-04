@@ -11,6 +11,8 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+    networks:
+      - localnet
 
   filebeat:
     image: "docker.elastic.co/beats/filebeat:7.10.2"
@@ -27,7 +29,7 @@ services:
     environment:
       - discovery.type=single-node
     volumes:
-      - ./esdata:/usr/share/elasticsearch/data
+      - ./esdata:/var/lib/elasticsearch/data
 
   logstash:
     image: docker.elastic.co/logstash/logstash:7.10.2
@@ -38,11 +40,6 @@ services:
 
   kibana:
     image: "docker.elastic.co/kibana/kibana:7.10.2"
-    # healthcheck:
-    #   test: ["CMD", "curl", "-s", "-f", "http://localhost:5601/api/status"]
-    #   interval: 3s
-    #   timeout: 3s
-    #   retries: 80
     environment:
       - ELASTICSEARCH_URL=http://localhost:9200
     ports:
@@ -50,3 +47,7 @@ services:
     hostname: kibana
     depends_on:
       - elasticsearch
+
+networks:
+  localnet:
+    external: true

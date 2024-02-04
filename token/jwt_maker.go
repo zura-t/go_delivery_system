@@ -15,8 +15,8 @@ func NewJwtMaker(secretKey string) (Maker, error) {
 	return &JwtMaker{secretKey}, nil
 }
 
-func (maker *JwtMaker) CreateToken(user_id int64, email string, duration time.Duration) (string, *Payload, error) {
-	payload, err := NewPayload(user_id, email, duration)
+func (maker *JwtMaker) CreateToken(user_id int64, is_admin bool, email string, duration time.Duration) (string, *Payload, error) {
+	payload, err := NewPayload(user_id, is_admin, email, duration)
 	if err != nil {
 		return "", payload, err
 	}

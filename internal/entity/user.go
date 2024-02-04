@@ -30,9 +30,13 @@ type UserLoginResponse struct {
 }
 
 type UserUpdate struct {
-	Name     string `json:"name"`
+	Name string `json:"name"`
 }
 
 type UserAddPhone struct {
-	Phone     string    `json:"phone"`
+	Phone string `json:"phone"`
+}
+
+type UserAddAdminRole struct {
+	IsAdmin bool `json:"is_admin"`
 }

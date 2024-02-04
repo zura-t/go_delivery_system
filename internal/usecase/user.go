@@ -10,7 +10,7 @@ type UserUseCase struct {
 	webapi UserWebAPI
 }
 
-func New(config *config.Config, webapi UserWebAPI) *UserUseCase {
+func NewUserUseCase(config *config.Config, webapi UserWebAPI) *UserUseCase {
 	return &UserUseCase{
 		config: config,
 		webapi: webapi,
@@ -27,6 +27,10 @@ func (uc *UserUseCase) LoginUser(req entity.UserLogin) (entity.UserLoginResponse
 
 func (uc *UserUseCase) GetMyProfile(id int64) (entity.User, int, error) {
 	return uc.webapi.GetMyProfile(id)
+}
+
+func (uc *UserUseCase) AddAdminRole(id int64) (string, int, error) {
+	return uc.webapi.AddAdminRole(id)
 }
 
 func (uc *UserUseCase) UpdateUser(id int64, req entity.UserUpdate) (entity.User, int, error) {
