@@ -2,3 +2,27 @@
 {"level":"error","msg":"token has expired [http - v1 - renewAccessToken - server.tokenMaker.VerifyToken]","time":"2023-12-07T18:27:45+06:00"}
 {"level":"error","msg":"Post \"http://127.0.0.1:8081/users\": EOF [http - v1 - user routes - createUser]","time":"2023-12-07T18:28:06+06:00"}
 {"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2023-12-07T18:35:31+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-07T15:24:10+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-07T15:44:43+06:00"}
+{"level":"error","msg":"Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag [http - v1 - user routes - createUser]","time":"2024-02-07T15:46:33+06:00"}
+{"level":"error","msg":"Post \"http://127.0.0.1:8081/users\": EOF [http - v1 - user routes - createUser]","time":"2024-02-07T15:46:53+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-07T15:50:52+06:00"}
+{"level":"error","msg":"Post \"http://127.0.0.1:8081/users\": EOF [http - v1 - user routes - createUser]","time":"2024-02-07T16:24:14+06:00"}
+{"level":"error","msg":"Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag [http - v1 - user routes - createUser]","time":"2024-02-07T16:24:23+06:00"}
+{"level":"error","msg":"Post \"http://127.0.0.1:8081/users\": EOF [http - v1 - user routes - createUser]","time":"2024-02-07T16:24:30+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-07T16:26:41+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-07T16:49:16+06:00"}
+{"level":"error","msg":"Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag [http - v1 - user routes - createUser]","time":"2024-02-07T16:58:32+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-07T17:19:49+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-07T19:41:22+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-07T19:42:07+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-07T19:43:07+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-07T19:54:27+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-08T18:13:47+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-08T19:27:25+06:00"}
+{"level":"error","msg":"Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag [http - v1 - user routes - createUser]","time":"2024-02-08T19:33:42+06:00"}
+{"level":"error","msg":"Key: 'CreateUserRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag [http - v1 - user routes - createUser]","time":"2024-02-08T19:34:05+06:00"}
+{"level":"error","msg":"Post \"http://127.0.0.1:8081/users\": dial tcp 127.0.0.1:8081: connectex: No connection could be made because the target machine actively refused it. [http - v1 - user routes - createUser]","time":"2024-02-09T19:31:15+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-09T19:33:50+06:00"}
+{"level":"error","msg":"Post \"http://accounts-service:8081/users\": dial tcp: lookup accounts-service: no such host [http - v1 - user routes - createUser]","time":"2024-02-12T20:01:00+06:00"}
+{"level":"info","msg":"app - Run - signal: interrupt[[]]","time":"2024-02-12T20:01:33+06:00"}

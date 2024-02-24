@@ -3,16 +3,15 @@ package httpserver
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 )
 
-func HttpErrorResponse(body io.ReadCloser) (map[string]any, error) {
-	content, err := ioutil.ReadAll(body)
+func HttpErrorResponse(body io.ReadCloser) (any, error) {
+	content, err := io.ReadAll(body)
 	if err != nil {
 		return nil, err
 	}
 
-	var errorMessage map[string]any
+	var errorMessage any
 	err = json.Unmarshal(content, &errorMessage)
 	if err != nil {
 		return nil, err

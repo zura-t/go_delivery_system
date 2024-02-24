@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/zura-t/go_delivery_system/config"
 	"github.com/zura-t/go_delivery_system/internal/entity"
@@ -52,21 +53,21 @@ func (webapi *ShopWebAPI) CreateShop(req *entity.CreateShop) (*entity.Shop, int,
 	if err != nil {
 		return &entity.Shop{}, http.StatusInternalServerError, err
 	}
-	err = json.Unmarshal(newShop, shop)
+	err = json.Unmarshal(newShop, &shop)
 	if err != nil {
 		return &entity.Shop{}, http.StatusInternalServerError, err
 	}
 	return shop, http.StatusOK, nil
 }
 
-func (webapi *ShopWebAPI) GetShop(id int64) (*entity.Shop, int, error) {
+func (webapi *ShopWebAPI) GetShopInfo(id int64) (*entity.Shop, int, error) {
 	url := fmt.Sprintf("%s/shops/%d", webapi.config.ShopsServiceAddress, id)
 	httpRequest, err := httpclient.NewHttpRequest(nil, http.MethodGet, url)
 	if err != nil {
 		return &entity.Shop{}, http.StatusInternalServerError, err
 	}
 
-	res, err := httpclient.Client.Do(httpRequest)
+	res, err := webapi.client.Do(httpRequest)
 
 	if err != nil {
 		return &entity.Shop{}, http.StatusInternalServerError, err
@@ -86,21 +87,26 @@ func (webapi *ShopWebAPI) GetShop(id int64) (*entity.Shop, int, error) {
 	if err != nil {
 		return &entity.Shop{}, http.StatusInternalServerError, err
 	}
-	err = json.Unmarshal(resp, shop)
+	err = json.Unmarshal(resp, &shop)
 	if err != nil {
 		return &entity.Shop{}, http.StatusInternalServerError, err
 	}
 	return shop, http.StatusOK, nil
 }
 
-func (webapi *ShopWebAPI) GetShops() ([]*entity.Shop, int, error) {
+func (webapi *ShopWebAPI) GetShops(limit int32, offset int32) ([]*entity.Shop, int, error) {
 	url := fmt.Sprintf("%s/shops", webapi.config.ShopsServiceAddress)
 	httpRequest, err := httpclient.NewHttpRequest(nil, http.MethodGet, url)
+	query := httpRequest.URL.Query()
+	query.Add("limit", strconv.Itoa(int(limit)))
+	query.Add("offset", strconv.Itoa(int(offset)))
+	httpRequest.URL.RawQuery = query.Encode()
+
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := httpclient.Client.Do(httpRequest)
+	res, err := webapi.client.Do(httpRequest)
 
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -115,26 +121,35 @@ func (webapi *ShopWebAPI) GetShops() ([]*entity.Shop, int, error) {
 	}
 	defer res.Body.Close()
 
-	var shops []*entity.Shop
+	var shops []entity.Shop
 	resp, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	err = json.Unmarshal(resp, shops)
+	err = json.Unmarshal(resp, &shops)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	return shops, http.StatusOK, nil
+
+	response := make([]*entity.Shop, len(shops))
+	for i := 0; i < len(shops); i++ {
+		response[i] = &shops[i]
+	}
+	return response, http.StatusOK, nil
 }
 
-func (webapi *ShopWebAPI) GetShopsAdmin(user_id int64) ([]*entity.Shop, int, error) {
-	url := fmt.Sprintf("%s/shops/admin/%d", webapi.config.ShopsServiceAddress, user_id)
+func (webapi *ShopWebAPI) GetShopsAdmin(user_id int64) ([]entity.Shop, int, error) {
+	url := fmt.Sprintf("%s/shops/admin", webapi.config.ShopsServiceAddress)
 	httpRequest, err := httpclient.NewHttpRequest(nil, http.MethodGet, url)
+	query := httpRequest.URL.Query()
+	query.Add("user_id", strconv.Itoa(int(user_id)))
+	httpRequest.URL.RawQuery = query.Encode()
+
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := httpclient.Client.Do(httpRequest)
+	res, err := webapi.client.Do(httpRequest)
 
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -149,12 +164,12 @@ func (webapi *ShopWebAPI) GetShopsAdmin(user_id int64) ([]*entity.Shop, int, err
 	}
 	defer res.Body.Close()
 
-	var shops []*entity.Shop
+	var shops []entity.Shop
 	resp, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	err = json.Unmarshal(resp, shops)
+	err = json.Unmarshal(resp, &shops)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -169,7 +184,7 @@ func (webapi *ShopWebAPI) UpdateShop(id int64, req *entity.UpdateShopInfo) (*ent
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := httpclient.Client.Do(httpRequest)
+	res, err := webapi.client.Do(httpRequest)
 
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -189,7 +204,7 @@ func (webapi *ShopWebAPI) UpdateShop(id int64, req *entity.UpdateShopInfo) (*ent
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	err = json.Unmarshal(newShop, shop)
+	err = json.Unmarshal(newShop, &shop)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -204,7 +219,7 @@ func (webapi *ShopWebAPI) CreateMenu(req []*entity.CreateMenuItem) ([]*entity.Me
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := httpclient.Client.Do(httpRequest)
+	res, err := webapi.client.Do(httpRequest)
 
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -224,7 +239,7 @@ func (webapi *ShopWebAPI) CreateMenu(req []*entity.CreateMenuItem) ([]*entity.Me
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	err = json.Unmarshal(resp, menuItems)
+	err = json.Unmarshal(resp, &menuItems)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -238,7 +253,7 @@ func (webapi *ShopWebAPI) GetMenu(shopId int64) ([]*entity.MenuItem, int, error)
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := httpclient.Client.Do(httpRequest)
+	res, err := webapi.client.Do(httpRequest)
 
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -258,7 +273,7 @@ func (webapi *ShopWebAPI) GetMenu(shopId int64) ([]*entity.MenuItem, int, error)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	err = json.Unmarshal(resp, menuItems)
+	err = json.Unmarshal(resp, &menuItems)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -273,7 +288,7 @@ func (webapi *ShopWebAPI) UpdateMenuItem(id int64, req *entity.UpdateMenuItem) (
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := httpclient.Client.Do(httpRequest)
+	res, err := webapi.client.Do(httpRequest)
 
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -293,7 +308,7 @@ func (webapi *ShopWebAPI) UpdateMenuItem(id int64, req *entity.UpdateMenuItem) (
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	err = json.Unmarshal(newMenuItem, menuItem)
+	err = json.Unmarshal(newMenuItem, &menuItem)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -307,7 +322,7 @@ func (webapi *ShopWebAPI) GetMenuItem(id int64) (*entity.MenuItem, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := httpclient.Client.Do(httpRequest)
+	res, err := webapi.client.Do(httpRequest)
 
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -327,21 +342,25 @@ func (webapi *ShopWebAPI) GetMenuItem(id int64) (*entity.MenuItem, int, error) {
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	err = json.Unmarshal(resp, menuItem)
+	err = json.Unmarshal(resp, &menuItem)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
 	return menuItem, http.StatusOK, nil
 }
 
-func (webapi *ShopWebAPI) DeleteShop(id int64) (string, int, error) {
+func (webapi *ShopWebAPI) DeleteShop(id int64, user_id int64) (string, int, error) {
 	url := fmt.Sprintf("%s/shops/%d", webapi.config.ShopsServiceAddress, id)
 	httpRequest, err := httpclient.NewHttpRequest(nil, http.MethodDelete, url)
+	query := httpRequest.URL.Query()
+	query.Add("user_id", strconv.Itoa(int(user_id)))
+	httpRequest.URL.RawQuery = query.Encode()
+
 	if err != nil {
 		return "", http.StatusInternalServerError, err
 	}
 
-	res, err := httpclient.Client.Do(httpRequest)
+	res, err := webapi.client.Do(httpRequest)
 
 	if err != nil {
 		return "", http.StatusInternalServerError, err
@@ -375,7 +394,7 @@ func (webapi *ShopWebAPI) DeleteMenuItem(id int64) (string, int, error) {
 		return "", http.StatusInternalServerError, err
 	}
 
-	res, err := httpclient.Client.Do(httpRequest)
+	res, err := webapi.client.Do(httpRequest)
 
 	if err != nil {
 		return "", http.StatusInternalServerError, err

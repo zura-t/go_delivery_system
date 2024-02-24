@@ -15,36 +15,48 @@ type shopRoutes struct {
 	logger      logger.Interface
 }
 
-func (server *Server) newShopRoutes(handler *gin.RouterGroup, shopUsecase usecase.Shop, logger logger.Interface) {
+func (server *Server) newShopRoutes(handler *gin.Engine, shopUsecase usecase.Shop, logger logger.Interface) {
 	routes := &shopRoutes{shopUsecase, logger}
 
 	handler.Group("/").Use(authMiddleware(server.tokenMaker))
-	
+
 	shopRoutes := handler.Group("/shops")
 	menuItemRoutes := shopRoutes.Group("/menu_items")
 
-	shopRoutes.POST("/", routes.createShop).Use(rolesMiddleware())
+	shopRoutes.POST("/", routes.createShop).Use(server.rolesMiddleware())
 	shopRoutes.GET("/:id", routes.getShop)
 	shopRoutes.GET("/", routes.getShops)
-	shopRoutes.GET("/admin", routes.getShopsAdmin).Use(rolesMiddleware())
-	shopRoutes.PATCH("/:id", routes.updateShop).Use(rolesMiddleware())
-	shopRoutes.DELETE("/:id", routes.deleteShop).Use(rolesMiddleware())
+	shopRoutes.GET("/admin", routes.getShopsAdmin).Use(server.rolesMiddleware())
+	shopRoutes.PATCH("/:id", routes.updateShop).Use(server.rolesMiddleware())
+	shopRoutes.DELETE("/:id", routes.deleteShop).Use(server.rolesMiddleware())
 
-	menuItemRoutes.POST("/", routes.createMenuItems).Use(rolesMiddleware())
-	menuItemRoutes.GET("/:shop_id", routes.getMenuItems)
-	menuItemRoutes.PATCH("/:id", routes.updateMenuItem).Use(rolesMiddleware())
+	menuItemRoutes.POST("/", routes.createMenuItems).Use(server.rolesMiddleware())
+	menuItemRoutes.GET("/list/", routes.getMenuItems)
+	menuItemRoutes.PATCH("/:id", routes.updateMenuItem).Use(server.rolesMiddleware())
 	menuItemRoutes.GET("/:id", routes.getMenuItem)
-	menuItemRoutes.DELETE("/:id", routes.deleteMenuItem).Use(rolesMiddleware())
+	menuItemRoutes.DELETE("/:id", routes.deleteMenuItem).Use(server.rolesMiddleware())
 }
 
 type CreateShopRequest struct {
 	Name        string    `json:"name" binding:"required"`
-	Description string    `json:"description"`
-	OpenTime    time.Time `json:"open_time" binding:"required"`
-	CloseTime   time.Time `json:"close_time" binding:"required"`
-	IsClosed    bool      `json:"is_closed" binding:"required"`
+	Description string    `json:"description" example:""`
+	OpenTime    time.Time `json:"open_time" binding:"required" example:""`
+	CloseTime   time.Time `json:"close_time" binding:"required" example:""`
+	IsClosed    bool      `json:"is_closed"`
 }
 
+// @Summary     Create Shop
+// @Description Create new Shop
+// @ID          create-shop
+// @Tags  	    shops
+// @Accept      json
+// @Produce     json
+// @Param       request body CreateShopRequest true "CreateShop"
+// @Success     200 {object} entity.Shop
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /shops/ [post]
 func (r *shopRoutes) createShop(ctx *gin.Context) {
 	var req CreateShopRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -53,11 +65,14 @@ func (r *shopRoutes) createShop(ctx *gin.Context) {
 		return
 	}
 
-	user, st, err := r.shopUsecase.CreateShop(&entity.CreateShop{
+	payload := getJWTPayload(ctx)
+
+	shop, st, err := r.shopUsecase.CreateShop(&entity.CreateShop{
 		Name:        req.Name,
 		Description: req.Description,
 		OpenTime:    req.OpenTime,
 		CloseTime:   req.CloseTime,
+		UserId:      payload.UserId,
 		IsClosed:    req.IsClosed,
 	})
 	if err != nil {
@@ -66,13 +81,25 @@ func (r *shopRoutes) createShop(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, user)
+	ctx.JSON(http.StatusOK, shop)
 }
 
 type IdParam struct {
 	Id int64 `uri:"id" binding:"required,min=1"`
 }
 
+// @Summary     Get Shop
+// @Description Get Shop info
+// @ID          getShop
+// @Tags  	    shops
+// @Accept      json
+// @Produce     json
+// @Param       request path IdParam true "getShop"
+// @Success     200 {object} entity.Shop
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /shops/:id [get]
 func (r *shopRoutes) getShop(ctx *gin.Context) {
 	var req IdParam
 	if err := ctx.ShouldBindUri(&req); err != nil {
@@ -81,7 +108,7 @@ func (r *shopRoutes) getShop(ctx *gin.Context) {
 		return
 	}
 
-	shop, st, err := r.shopUsecase.GetShopInfo(req.Id)
+	shop, st, err := r.shopUsecase.GetShop(req.Id)
 
 	if err != nil {
 		r.logger.Error(err, "http - v1 - user routes - getMyProfile")
@@ -92,8 +119,32 @@ func (r *shopRoutes) getShop(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, shop)
 }
 
+type GetShopsRequest struct {
+	Limit  int32 `form:"limit,default=20" binding:"min=1"`
+	Offset int32 `form:"offset,default=0"`
+}
+
+// @Summary     GetShops
+// @Description getShops
+// @ID          getShops
+// @Tags  	    shops
+// @Accept      json
+// @Produce     json
+// @Success     200 {object} []entity.Shop
+// @Param       limit query string false "rows to return"
+// @Param       offset query string  false  "rows to skip"
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /shops/ [get]
 func (r *shopRoutes) getShops(ctx *gin.Context) {
-	shops, st, err := r.shopUsecase.GetShops()
+	var req GetShopsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		errorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	shops, st, err := r.shopUsecase.GetShops(req.Limit, req.Offset)
 
 	if err != nil {
 		r.logger.Error(err, "http - v1 - user routes - getShops")
@@ -104,10 +155,17 @@ func (r *shopRoutes) getShops(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, shops)
 }
 
-type GetShopsAdmin struct {
-	UserId int64 `uri:"id" binding:"required,min=1"`
-}
-
+// @Summary     GetShopsAdmin
+// @Description get shops where you're admin
+// @ID          getShopsAdmin
+// @Tags  	    shops
+// @Accept      json
+// @Produce     json
+// @Success     200 {object} []entity.Shop
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /shops/admin [get]
 func (r *shopRoutes) getShopsAdmin(ctx *gin.Context) {
 	payload := getJWTPayload(ctx)
 
@@ -123,7 +181,6 @@ func (r *shopRoutes) getShopsAdmin(ctx *gin.Context) {
 }
 
 type UpdateShopRequest struct {
-	Id          int64     `uri:"id" binding:"required,min=1"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	OpenTime    time.Time `json:"open_time"`
@@ -131,6 +188,18 @@ type UpdateShopRequest struct {
 	IsClosed    bool      `json:"is_closed"`
 }
 
+// @Summary     Update Shop
+// @Description Update Shop
+// @ID          update-shop
+// @Tags  	    shops
+// @Accept      json
+// @Produce     json
+// @Param       request body UpdateShopRequest true "updateShop"
+// @Success     200 {object} entity.Shop
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /shops/ [patch]
 func (r *shopRoutes) updateShop(ctx *gin.Context) {
 	var req UpdateShopRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -139,12 +208,22 @@ func (r *shopRoutes) updateShop(ctx *gin.Context) {
 		return
 	}
 
-	user, st, err := r.shopUsecase.UpdateShop(req.Id, &entity.UpdateShopInfo{
+	var param IdParam
+	if err := ctx.ShouldBindUri(&param); err != nil {
+		r.logger.Error(err, "http - v1 - shop routes - updateShop")
+		errorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	payload := getJWTPayload(ctx)
+
+	data, st, err := r.shopUsecase.UpdateShop(param.Id, &entity.UpdateShopInfo{
 		Name:        req.Name,
 		Description: req.Description,
 		OpenTime:    req.OpenTime,
 		CloseTime:   req.CloseTime,
 		IsClosed:    req.IsClosed,
+		UserId:      payload.UserId,
 	})
 
 	if err != nil {
@@ -153,7 +232,7 @@ func (r *shopRoutes) updateShop(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, user)
+	ctx.JSON(http.StatusOK, data)
 }
 
 type CreateMenuItemsRequest struct {
@@ -166,6 +245,18 @@ type CreateMenuItemsRequest struct {
 	} `json:"menu_items"`
 }
 
+// @Summary     Create MenuItems
+// @Description Create MenuItems
+// @ID          create-menuitems
+// @Tags  	    shops
+// @Accept      json
+// @Produce     json
+// @Param       request body CreateMenuItemsRequest true "register"
+// @Success     200 {object} []entity.MenuItem
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /shops/menu_items [post]
 func (r *shopRoutes) createMenuItems(ctx *gin.Context) {
 	var req CreateMenuItemsRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -200,6 +291,18 @@ type GetMenuRequest struct {
 	ShopId int64 `uri:"shop_id" binding:"required,min=1"`
 }
 
+// @Summary     GetMenuItems
+// @Description getMenuItems
+// @ID          getMenuItems
+// @Tags  	    shops
+// @Accept      json
+// @Produce     json
+// @Param       request path GetMenuRequest true "GetMenuItems"
+// @Success     200 {object} []entity.MenuItem
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /menu_items/list/ [get]
 func (r *shopRoutes) getMenuItems(ctx *gin.Context) {
 	var req GetMenuRequest
 	if err := ctx.ShouldBindUri(&req); err != nil {
@@ -225,6 +328,18 @@ type UpdateMenuItemRequest struct {
 	Price       int32  `json:"price" binding:"min=1"`
 }
 
+// @Summary     updateMenuItem
+// @Description updateMenuItem
+// @ID          updateMenuItem
+// @Tags  	    shops
+// @Accept      json
+// @Produce     json
+// @Param       request body UpdateMenuItemRequest true "register"
+// @Success     200 {object} entity.MenuItem
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /shops/menu_items [patch]
 func (r *shopRoutes) updateMenuItem(ctx *gin.Context) {
 	var req UpdateMenuItemRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -255,6 +370,18 @@ func (r *shopRoutes) updateMenuItem(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, menuItems)
 }
 
+// @Summary     getMenuItem
+// @Description getMenuItem
+// @ID          getMenuItem
+// @Tags  	    shops
+// @Accept      json
+// @Produce     json
+// @Param       request path IdParam true "getMenuItem"
+// @Success     200 {object} entity.MenuItem
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /shops/menu_items [get]
 func (r *shopRoutes) getMenuItem(ctx *gin.Context) {
 	var req IdParam
 	if err := ctx.ShouldBindUri(&req); err != nil {
@@ -274,6 +401,22 @@ func (r *shopRoutes) getMenuItem(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, menuItem)
 }
 
+type UserIdQuery struct {
+	UserId int64 `form:"user_id" binding:"required,min=1"`
+}
+
+// @Summary     Delete Shop
+// @Description Delete Shop
+// @ID          delete-shop
+// @Tags  	    shops
+// @Accept      json
+// @Produce     json
+// @Param       request path IdParam true "deleteShop"
+// @Success     200 {object} string
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /shops/ [delete]
 func (r *shopRoutes) deleteShop(ctx *gin.Context) {
 	var req IdParam
 	if err := ctx.ShouldBindUri(&req); err != nil {
@@ -282,7 +425,14 @@ func (r *shopRoutes) deleteShop(ctx *gin.Context) {
 		return
 	}
 
-	res, st, err := r.shopUsecase.DeleteShop(req.Id)
+	payload := getJWTPayload(ctx)
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		r.logger.Error(err, "http - v1 - shop routes - deleteMenuItems")
+		errorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	res, st, err := r.shopUsecase.DeleteShop(req.Id, payload.UserId)
 
 	if err != nil {
 		r.logger.Error(err, "http - v1 - shop routes - deleteMenuItems")
@@ -293,6 +443,18 @@ func (r *shopRoutes) deleteShop(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
+// @Summary     DeleteMenuItem
+// @Description DeleteMenuItem
+// @ID          deleteMenuItem
+// @Tags  	    shops
+// @Accept      json
+// @Produce     json
+// @Param       request path IdParam true "deleteMenuItem"
+// @Success     200 {object} string
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /shops/menu_items [delete]
 func (r *shopRoutes) deleteMenuItem(ctx *gin.Context) {
 	var req IdParam
 	if err := ctx.ShouldBindUri(&req); err != nil {

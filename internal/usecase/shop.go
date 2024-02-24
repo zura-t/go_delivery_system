@@ -25,11 +25,11 @@ func (uc *ShopUseCase) GetShop(id int64) (*entity.Shop, int, error) {
 	return uc.webapi.GetShopInfo(id)
 }
 
-func (uc *ShopUseCase) GetShops() ([]*entity.Shop, int, error) {
-	return uc.webapi.GetShops()
+func (uc *ShopUseCase) GetShops(limit int32, offset int32) ([]*entity.Shop, int, error) {
+	return uc.webapi.GetShops(limit, offset)
 }
 
-func (uc *ShopUseCase) GetShopsAdmin(user_id int64) ([]*entity.Shop, int, error) {
+func (uc *ShopUseCase) GetShopsAdmin(user_id int64) ([]entity.Shop, int, error) {
 	return uc.webapi.GetShopsAdmin(user_id)
 }
 
@@ -53,8 +53,8 @@ func (uc *ShopUseCase) GetMenuItem(id int64) (*entity.MenuItem, int, error) {
 	return uc.webapi.GetMenuItem(id)
 }
 
-func (uc *ShopUseCase) DeleteShop(id int64) (string, int, error) {
-	return uc.webapi.DeleteShop(id)
+func (uc *ShopUseCase) DeleteShop(id int64, user_id int64) (string, int, error) {
+	return uc.webapi.DeleteShop(id, user_id)
 }
 
 func (uc *ShopUseCase) DeleteMenuItem(id int64) (string, int, error) {

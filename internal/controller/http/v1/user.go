@@ -15,7 +15,7 @@ type userRoutes struct {
 	logger      logger.Interface
 }
 
-func (server *Server) newUserRoutes(handler *gin.RouterGroup, userUsecase usecase.User, logger logger.Interface) {
+func (server *Server) newUserRoutes(handler *gin.Engine, userUsecase usecase.User, logger logger.Interface) {
 	routes := &userRoutes{userUsecase, logger}
 
 	handler.POST("/users", routes.createUser)
@@ -23,7 +23,7 @@ func (server *Server) newUserRoutes(handler *gin.RouterGroup, userUsecase usecas
 	handler.POST("/logout", routes.logout)
 	handler.POST("/renew_token", server.renewAccessToken)
 
-	authRoutes := handler.Group("/").Use(authMiddleware(server.tokenMaker))
+	authRoutes := handler.Use(authMiddleware(server.tokenMaker))
 	authRoutes.GET("/users/my_profile", routes.getMyProfile)
 	authRoutes.PATCH("/users/admin", routes.addAdminRole)
 	authRoutes.PATCH("/users/", routes.updateUser)
@@ -37,15 +37,17 @@ type CreateUserRequest struct {
 	Name     string `json:"name" binding:"required"`
 }
 
-// @Summary     Show history
-// @Description Show all translation history
-// @ID          history
-// @Tags  	    translation
+// @Summary     Create User
+// @Description Create new User
+// @ID          create-user
+// @Tags  	    users
 // @Accept      json
 // @Produce     json
-// @Success     200 {object} historyResponse
+// @Param       request body CreateUserRequest true "register"
+// @Success     200 {object} entity.User
+// @Failure     400 {object} response
 // @Failure     500 {object} response
-// @Router      /translation/history [get]
+// @Router      /users/ [post]
 func (r *userRoutes) createUser(ctx *gin.Context) {
 	var req CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -54,7 +56,7 @@ func (r *userRoutes) createUser(ctx *gin.Context) {
 		return
 	}
 
-	user, st, err := r.userUsecase.CreateUser(entity.UserRegister{
+	user, st, err := r.userUsecase.CreateUser(&entity.UserRegister{
 		Email:    req.Email,
 		Password: req.Password,
 		Name:     req.Name,
@@ -81,6 +83,17 @@ type LoginUserResponse struct {
 	User                  entity.User `json:"user"`
 }
 
+// @Summary     Login
+// @Description Log in
+// @ID          login
+// @Tags  	    users
+// @Accept      json
+// @Produce     json
+// @Param       request body LoginUserRequest true "log in"
+// @Success     200 {object} entity.UserLoginResponse
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Router      /login/ [post]
 func (r *userRoutes) loginUser(ctx *gin.Context) {
 	var req LoginUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -89,7 +102,7 @@ func (r *userRoutes) loginUser(ctx *gin.Context) {
 		return
 	}
 
-	user, st, err := r.userUsecase.LoginUser(entity.UserLogin{Email: req.Email, Password: req.Password})
+	user, st, err := r.userUsecase.LoginUser(&entity.UserLogin{Email: req.Email, Password: req.Password})
 	if err != nil {
 		r.logger.Error(err, "http - v1 - user routes - loginUser")
 		errorResponse(ctx, st, err.Error())
@@ -100,17 +113,17 @@ func (r *userRoutes) loginUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
-// @Summary     Translate
-// @Description Translate a text
-// @ID          do-translate
-// @Tags  	    translation
+// @Summary     Get my profile
+// @Description getMyProfile
+// @ID          getMyProfile
+// @Tags  	    users
 // @Accept      json
 // @Produce     json
-// @Param       request body doTranslateRequest true "Set up translation"
-// @Success     200 {object} entity.Translation
+// @Success     200 {object} entity.User
 // @Failure     400 {object} response
 // @Failure     500 {object} response
-// @Router      /translation/do-translate [post]
+// @Security 		BearerAuth
+// @Router      /users/my_profile [get]
 func (r *userRoutes) getMyProfile(ctx *gin.Context) {
 	payload := getJWTPayload(ctx)
 	user, st, err := r.userUsecase.GetMyProfile(payload.UserId)
@@ -123,6 +136,17 @@ func (r *userRoutes) getMyProfile(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
+// @Summary     Add adminRole
+// @Description addAdminRole
+// @ID          addAdminRole
+// @Tags  	    users
+// @Accept      json
+// @Produce     json
+// @Success     200 {object} string
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /users/admin [patch]
 func (r *userRoutes) addAdminRole(ctx *gin.Context) {
 	payload := getJWTPayload(ctx)
 
@@ -139,6 +163,18 @@ type UpdateUserRequest struct {
 	Name string `json:"name" binding:"required"`
 }
 
+// @Summary     Update user
+// @Description updateUser
+// @ID          updateUser
+// @Tags  	    users
+// @Accept      json
+// @Produce     json
+// @Param       request body UpdateUserRequest true "updateUser"
+// @Success     200 {object} entity.User
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /users/ [patch]
 func (r *userRoutes) updateUser(ctx *gin.Context) {
 	payload := getJWTPayload(ctx)
 	var req UpdateUserRequest
@@ -148,7 +184,7 @@ func (r *userRoutes) updateUser(ctx *gin.Context) {
 		return
 	}
 
-	user, st, err := r.userUsecase.UpdateUser(payload.UserId, entity.UserUpdate{
+	user, st, err := r.userUsecase.UpdateUser(payload.UserId, &entity.UserUpdate{
 		Name: req.Name,
 	})
 	if err != nil {
@@ -164,6 +200,18 @@ type AddPhoneRequest struct {
 	Phone string `json:"phone" binding:"required"`
 }
 
+// @Summary     AddPhone
+// @Description addPhone
+// @ID          addPhone
+// @Tags  	    users
+// @Accept      json
+// @Produce     json
+// @Param       request body AddPhoneRequest true "addPhone"
+// @Success     200 {object} string
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /users/phone_number [patch]
 func (r *userRoutes) addPhone(ctx *gin.Context) {
 	payload := getJWTPayload(ctx)
 	var req AddPhoneRequest
@@ -173,7 +221,7 @@ func (r *userRoutes) addPhone(ctx *gin.Context) {
 		return
 	}
 
-	resp, st, err := r.userUsecase.AddPhone(payload.UserId, entity.UserAddPhone{
+	resp, st, err := r.userUsecase.AddPhone(payload.UserId, &entity.UserAddPhone{
 		Phone: req.Phone,
 	})
 	if err != nil {
@@ -185,6 +233,17 @@ func (r *userRoutes) addPhone(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+// @Summary     Delete User
+// @Description deleteUser
+// @ID          deleteUser
+// @Tags  	    users
+// @Accept      json
+// @Produce     json
+// @Success     200 {object} string
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Security 		BearerAuth
+// @Router      /users/ [delete]
 func (r *userRoutes) deleteUser(ctx *gin.Context) {
 	payload := getJWTPayload(ctx)
 	res, st, err := r.userUsecase.DeleteUser(payload.UserId)
@@ -197,6 +256,16 @@ func (r *userRoutes) deleteUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
+// @Summary     Logout
+// @Description logout
+// @ID          logout
+// @Tags  	    users
+// @Accept      json
+// @Produce     json
+// @Success     200 {object} string
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Router      /logout [post]
 func (r *userRoutes) logout(ctx *gin.Context) {
 	ctx.SetCookie("refresh_token", "", -1, "/", "localhost", false, true)
 	ctx.JSON(http.StatusOK, "logged out")

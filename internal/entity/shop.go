@@ -21,6 +21,7 @@ type CreateShop struct {
 	CloseTime   time.Time  `json:"close_time"`
 	IsClosed    bool       `json:"is_closed"`
 	Menuitems   []MenuItem `json:"menuitems"`
+	UserId      int64      `json:"user_id"`
 }
 
 type MenuItem struct {
@@ -39,6 +40,7 @@ type UpdateShopInfo struct {
 	OpenTime    time.Time `json:"open_time"`
 	CloseTime   time.Time `json:"close_time"`
 	IsClosed    bool      `json:"is_closed"`
+	UserId      int64     `json:"user_id"`
 }
 
 type CreateMenuItem struct {

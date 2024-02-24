@@ -5,26 +5,24 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/zura-t/go_delivery_system/token"
 )
 
-func rolesMiddleware() gin.HandlerFunc {
+func (server *Server) rolesMiddleware() gin.HandlerFunc {
 	abort := func(ctx *gin.Context, err error) {
 		errorResponse(ctx, http.StatusUnauthorized, err.Error())
 		ctx.Abort()
 	}
 
 	return func(ctx *gin.Context) {
-		var tokenPayload token.Payload
-		payload, exists := ctx.Get(authorizationPayloadKey)
-		tokenPayload = payload.(token.Payload)
+		jwtPayload := getJWTPayload(ctx)
+		user, _, err := server.userUsecase.GetMyProfile(jwtPayload.UserId)
 
-		if exists {
+		if err != nil {
 			abort(ctx, errors.New("Can't get payload"))
 			return
 		}
 
-		if !tokenPayload.IsAdmin {
+		if !user.IsAdmin {
 			abort(ctx, errors.New("Incorrect user role"))
 			return
 		}

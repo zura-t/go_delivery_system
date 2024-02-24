@@ -13,6 +13,16 @@ type renewAccessTokenResponse struct {
 	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
 }
 
+// @Summary     RenewAccessToken
+// @Description renewAccessToken
+// @ID          renewAccessToken
+// @Tags  	    users
+// @Accept      json
+// @Produce     json
+// @Success     200 {object} renewAccessTokenResponse
+// @Failure     400 {object} response
+// @Failure     500 {object} response
+// @Router      /renew_token [post]
 func (server *Server) renewAccessToken(ctx *gin.Context) {
 	refreshToken, err := ctx.Cookie("refresh_token")
 	if err != nil {

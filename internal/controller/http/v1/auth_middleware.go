@@ -18,7 +18,7 @@ const (
 
 func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 	abort := func(ctx *gin.Context, err error) {
-		errorResponse(ctx, http.StatusUnauthorized, "Token has been expired")
+		errorResponse(ctx, http.StatusUnauthorized, err.Error())
 		ctx.Abort()
 	}
 

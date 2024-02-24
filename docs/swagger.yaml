@@ -1,0 +1,795 @@
+definitions:
+  entity.MenuItem:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      photo:
+        type: string
+      price:
+        type: integer
+      shop_id:
+        type: integer
+    type: object
+  entity.Shop:
+    properties:
+      close_time:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_closed:
+        type: boolean
+      name:
+        type: string
+      open_time:
+        type: string
+    type: object
+  entity.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_admin:
+        type: boolean
+      name:
+        type: string
+      phone:
+        type: string
+    type: object
+  entity.UserLoginResponse:
+    properties:
+      access_token:
+        type: string
+      access_token_expires_at:
+        type: string
+      refresh_token:
+        type: string
+      refresh_token_expires_at:
+        type: string
+      user:
+        $ref: '#/definitions/entity.User'
+    type: object
+  v1.AddPhoneRequest:
+    properties:
+      phone:
+        type: string
+    required:
+    - phone
+    type: object
+  v1.CreateMenuItemsRequest:
+    properties:
+      menu_items:
+        items:
+          properties:
+            description:
+              type: string
+            name:
+              type: string
+            photo:
+              type: string
+            price:
+              minimum: 1
+              type: integer
+            shop_id:
+              minimum: 1
+              type: integer
+          required:
+          - name
+          - price
+          - shop_id
+          type: object
+        type: array
+    type: object
+  v1.CreateShopRequest:
+    properties:
+      close_time:
+        example: ""
+        type: string
+      description:
+        example: ""
+        type: string
+      is_closed:
+        type: boolean
+      name:
+        type: string
+      open_time:
+        example: ""
+        type: string
+    required:
+    - close_time
+    - is_closed
+    - name
+    - open_time
+    type: object
+  v1.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  v1.LoginUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  v1.UpdateMenuItemRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      price:
+        minimum: 1
+        type: integer
+    type: object
+  v1.UpdateShopRequest:
+    properties:
+      close_time:
+        type: string
+      description:
+        type: string
+      id:
+        minimum: 1
+        type: integer
+      is_closed:
+        type: boolean
+      name:
+        type: string
+      open_time:
+        type: string
+    required:
+    - id
+    type: object
+  v1.UpdateUserRequest:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  v1.renewAccessTokenResponse:
+    properties:
+      access_token:
+        type: string
+      access_token_expires_at:
+        type: string
+    type: object
+  v1.response:
+    properties:
+      error:
+        example: message
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /login/:
+    post:
+      consumes:
+      - application/json
+      description: Log in
+      operationId: login
+      parameters:
+      - description: log in
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.LoginUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.UserLoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      summary: Login
+      tags:
+      - users
+  /logout:
+    post:
+      consumes:
+      - application/json
+      description: logout
+      operationId: logout
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      summary: Logout
+      tags:
+      - users
+  /menu_items/list/:
+    get:
+      consumes:
+      - application/json
+      description: getMenuItems
+      operationId: getMenuItems
+      parameters:
+      - in: path
+        minimum: 1
+        name: shop_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.MenuItem'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: GetMenuItems
+      tags:
+      - shops
+  /renew_token:
+    post:
+      consumes:
+      - application/json
+      description: renewAccessToken
+      operationId: renewAccessToken
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.renewAccessTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      summary: RenewAccessToken
+      tags:
+      - users
+  /shops/:
+    delete:
+      consumes:
+      - application/json
+      description: Delete Shop
+      operationId: delete-shop
+      parameters:
+      - in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Delete Shop
+      tags:
+      - shops
+    get:
+      consumes:
+      - application/json
+      description: getShops
+      operationId: getShops
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.Shop'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: GetShops
+      tags:
+      - shops
+    patch:
+      consumes:
+      - application/json
+      description: Update Shop
+      operationId: update-shop
+      parameters:
+      - description: updateShop
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.UpdateShopRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Shop'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Update Shop
+      tags:
+      - shops
+    post:
+      consumes:
+      - application/json
+      description: Create new Shop
+      operationId: create-shop
+      parameters:
+      - description: CreateShop
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateShopRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Shop'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Create Shop
+      tags:
+      - shops
+  /shops/:id:
+    get:
+      consumes:
+      - application/json
+      description: Get Shop info
+      operationId: getShop
+      parameters:
+      - in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Shop'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Get Shop
+      tags:
+      - shops
+  /shops/admin:
+    get:
+      consumes:
+      - application/json
+      description: get shops where you're admin
+      operationId: getShopsAdmin
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.Shop'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: GetShopsAdmin
+      tags:
+      - shops
+  /shops/menu_items:
+    delete:
+      consumes:
+      - application/json
+      description: DeleteMenuItem
+      operationId: deleteMenuItem
+      parameters:
+      - in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: DeleteMenuItem
+      tags:
+      - shops
+    get:
+      consumes:
+      - application/json
+      description: getMenuItem
+      operationId: getMenuItem
+      parameters:
+      - in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.MenuItem'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: getMenuItem
+      tags:
+      - shops
+    patch:
+      consumes:
+      - application/json
+      description: updateMenuItem
+      operationId: updateMenuItem
+      parameters:
+      - description: register
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.UpdateMenuItemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.MenuItem'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: updateMenuItem
+      tags:
+      - shops
+    post:
+      consumes:
+      - application/json
+      description: Create MenuItems
+      operationId: create-menuitems
+      parameters:
+      - description: register
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateMenuItemsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.MenuItem'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Create MenuItems
+      tags:
+      - shops
+  /users/:
+    delete:
+      consumes:
+      - application/json
+      description: deleteUser
+      operationId: deleteUser
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Delete User
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      description: updateUser
+      operationId: updateUser
+      parameters:
+      - description: updateUser
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Update user
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Create new User
+      operationId: create-user
+      parameters:
+      - description: register
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      summary: Create User
+      tags:
+      - users
+  /users/admin:
+    patch:
+      consumes:
+      - application/json
+      description: addAdminRole
+      operationId: addAdminRole
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Add adminRole
+      tags:
+      - users
+  /users/my_profile:
+    get:
+      consumes:
+      - application/json
+      description: getMyProfile
+      operationId: getMyProfile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Get my profile
+      tags:
+      - users
+  /users/phone_number:
+    patch:
+      consumes:
+      - application/json
+      description: addPhone
+      operationId: addPhone
+      parameters:
+      - description: addPhone
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.AddPhoneRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: AddPhone
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

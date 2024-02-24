@@ -5,6 +5,13 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+    develop:
+      watch:
+        - action: rebuild
+          files:
+            - ./**/**
+            - ./go.mod
+            - ./go.sum
     restart: always
     ports:
       - "8080:8080"

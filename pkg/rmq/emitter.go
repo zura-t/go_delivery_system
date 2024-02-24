@@ -16,7 +16,7 @@ type Emitter struct {
 }
 
 func SendRPC[Q, S any](routingKey string, r Q) (rsp *S, err error) {
-	rabbitConn, err := amqp.Dial("amqp://guest:guest@localhost:5672")
+	rabbitConn, err := amqp.Dial("amqp://admin:admin@localhost:5672")
 	if err != nil {
 		log.Println(err)
 	}
