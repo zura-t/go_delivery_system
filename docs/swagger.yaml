@@ -1,19 +1,13 @@
 definitions:
   entity.MenuItem:
     properties:
-      created_at:
-        type: string
       description:
         type: string
-      id:
-        type: integer
       name:
         type: string
       photo:
         type: string
       price:
-        type: integer
-      shop_id:
         type: integer
     type: object
   entity.Shop:
@@ -72,25 +66,15 @@ definitions:
     properties:
       menu_items:
         items:
-          properties:
-            description:
-              type: string
-            name:
-              type: string
-            photo:
-              type: string
-            price:
-              minimum: 1
-              type: integer
-            shop_id:
-              minimum: 1
-              type: integer
-          required:
-          - name
-          - price
-          - shop_id
-          type: object
+          $ref: '#/definitions/v1.MenuItem'
+        minItems: 1
         type: array
+      shop_id:
+        minimum: 1
+        type: integer
+    required:
+    - menu_items
+    - shop_id
     type: object
   v1.CreateShopRequest:
     properties:
@@ -109,7 +93,6 @@ definitions:
         type: string
     required:
     - close_time
-    - is_closed
     - name
     - open_time
     type: object
@@ -138,6 +121,21 @@ definitions:
     - email
     - password
     type: object
+  v1.MenuItem:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      photo:
+        type: string
+      price:
+        minimum: 1
+        type: integer
+    required:
+    - name
+    - price
+    type: object
   v1.UpdateMenuItemRequest:
     properties:
       description:
@@ -154,17 +152,12 @@ definitions:
         type: string
       description:
         type: string
-      id:
-        minimum: 1
-        type: integer
       is_closed:
         type: boolean
       name:
         type: string
       open_time:
         type: string
-    required:
-    - id
     type: object
   v1.UpdateUserRequest:
     properties:
@@ -244,40 +237,6 @@ paths:
       summary: Logout
       tags:
       - users
-  /menu_items/list/:
-    get:
-      consumes:
-      - application/json
-      description: getMenuItems
-      operationId: getMenuItems
-      parameters:
-      - in: path
-        minimum: 1
-        name: shop_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/entity.MenuItem'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/v1.response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/v1.response'
-      security:
-      - BearerAuth: []
-      summary: GetMenuItems
-      tags:
-      - shops
   /renew_token:
     post:
       consumes:
@@ -303,42 +262,20 @@ paths:
       tags:
       - users
   /shops/:
-    delete:
-      consumes:
-      - application/json
-      description: Delete Shop
-      operationId: delete-shop
-      parameters:
-      - in: path
-        minimum: 1
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/v1.response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/v1.response'
-      security:
-      - BearerAuth: []
-      summary: Delete Shop
-      tags:
-      - shops
     get:
       consumes:
       - application/json
       description: getShops
       operationId: getShops
+      parameters:
+      - description: rows to return
+        in: query
+        name: limit
+        type: string
+      - description: rows to skip
+        in: query
+        name: offset
+        type: string
       produces:
       - application/json
       responses:
@@ -359,38 +296,6 @@ paths:
       security:
       - BearerAuth: []
       summary: GetShops
-      tags:
-      - shops
-    patch:
-      consumes:
-      - application/json
-      description: Update Shop
-      operationId: update-shop
-      parameters:
-      - description: updateShop
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/v1.UpdateShopRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/entity.Shop'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/v1.response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/v1.response'
-      security:
-      - BearerAuth: []
-      summary: Update Shop
       tags:
       - shops
     post:
@@ -457,6 +362,75 @@ paths:
       summary: Get Shop
       tags:
       - shops
+  /shops/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete Shop
+      operationId: delete-shop
+      parameters:
+      - in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Delete Shop
+      tags:
+      - shops
+    patch:
+      consumes:
+      - application/json
+      description: Update Shop
+      operationId: update-shop
+      parameters:
+      - description: updateShop
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.UpdateShopRequest'
+      - in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Shop'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Update Shop
+      tags:
+      - shops
   /shops/admin:
     get:
       consumes:
@@ -486,6 +460,41 @@ paths:
       tags:
       - shops
   /shops/menu_items:
+    post:
+      consumes:
+      - application/json
+      description: Create MenuItems
+      operationId: create-menuitems
+      parameters:
+      - description: create menuitems
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateMenuItemsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.MenuItem'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Create MenuItems
+      tags:
+      - shops
+  /shops/menu_items/{id}:
     delete:
       consumes:
       - application/json
@@ -554,7 +563,12 @@ paths:
       description: updateMenuItem
       operationId: updateMenuItem
       parameters:
-      - description: register
+      - in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      - description: updateMenuItem
         in: body
         name: request
         required: true
@@ -580,18 +594,18 @@ paths:
       summary: updateMenuItem
       tags:
       - shops
-    post:
+  /shops/menu_items/list/{id}:
+    get:
       consumes:
       - application/json
-      description: Create MenuItems
-      operationId: create-menuitems
+      description: getMenuItems
+      operationId: getMenuItems
       parameters:
-      - description: register
-        in: body
-        name: request
+      - in: path
+        minimum: 1
+        name: id
         required: true
-        schema:
-          $ref: '#/definitions/v1.CreateMenuItemsRequest'
+        type: integer
       produces:
       - application/json
       responses:
@@ -611,7 +625,7 @@ paths:
             $ref: '#/definitions/v1.response'
       security:
       - BearerAuth: []
-      summary: Create MenuItems
+      summary: GetMenuItems
       tags:
       - shops
   /users/:

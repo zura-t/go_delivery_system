@@ -37,19 +37,19 @@ func (uc *ShopUseCase) UpdateShop(id int64, req *entity.UpdateShopInfo) (*entity
 	return uc.webapi.UpdateShop(id, req)
 }
 
-func (uc *ShopUseCase) CreateMenu(req []*entity.CreateMenuItem) ([]*entity.MenuItem, int, error) {
+func (uc *ShopUseCase) CreateMenu(req *entity.CreateMenuItem) ([]*entity.GetMenuItem, int, error) {
 	return uc.webapi.CreateMenu(req)
 }
 
-func (uc *ShopUseCase) GetMenu(shopId int64) ([]*entity.MenuItem, int, error) {
+func (uc *ShopUseCase) GetMenu(shopId int64) ([]*entity.GetMenuItem, int, error) {
 	return uc.webapi.GetMenu(shopId)
 }
 
-func (uc *ShopUseCase) UpdateMenuItem(id int64, req *entity.UpdateMenuItem) (*entity.MenuItem, int, error) {
+func (uc *ShopUseCase) UpdateMenuItem(id int64, req *entity.UpdateMenuItem) (*entity.GetMenuItem, int, error) {
 	return uc.webapi.UpdateMenuItem(id, req)
 }
 
-func (uc *ShopUseCase) GetMenuItem(id int64) (*entity.MenuItem, int, error) {
+func (uc *ShopUseCase) GetMenuItem(id int64) (*entity.GetMenuItem, int, error) {
 	return uc.webapi.GetMenuItem(id)
 }
 

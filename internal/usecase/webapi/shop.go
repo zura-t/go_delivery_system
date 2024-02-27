@@ -211,8 +211,8 @@ func (webapi *ShopWebAPI) UpdateShop(id int64, req *entity.UpdateShopInfo) (*ent
 	return shop, http.StatusOK, nil
 }
 
-func (webapi *ShopWebAPI) CreateMenu(req []*entity.CreateMenuItem) ([]*entity.MenuItem, int, error) {
-	url := fmt.Sprintf("%s/shops/menu_items", webapi.config.ShopsServiceAddress)
+func (webapi *ShopWebAPI) CreateMenu(req *entity.CreateMenuItem) ([]*entity.GetMenuItem, int, error) {
+	url := fmt.Sprintf("%s/menu_items", webapi.config.ShopsServiceAddress)
 
 	httpRequest, err := httpclient.NewHttpRequest(req, http.MethodPost, url)
 	if err != nil {
@@ -234,7 +234,7 @@ func (webapi *ShopWebAPI) CreateMenu(req []*entity.CreateMenuItem) ([]*entity.Me
 	}
 	defer res.Body.Close()
 
-	var menuItems []*entity.MenuItem
+	var menuItems []entity.GetMenuItem
 	resp, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -243,11 +243,16 @@ func (webapi *ShopWebAPI) CreateMenu(req []*entity.CreateMenuItem) ([]*entity.Me
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	return menuItems, http.StatusOK, nil
+	response := make([]*entity.GetMenuItem, len(menuItems))
+	for i := 0; i < len(menuItems); i++ {
+		response[i] = &menuItems[i]
+	}
+	
+	return response, http.StatusOK, nil
 }
 
-func (webapi *ShopWebAPI) GetMenu(shopId int64) ([]*entity.MenuItem, int, error) {
-	url := fmt.Sprintf("%s/shops/menu_items", webapi.config.ShopsServiceAddress)
+func (webapi *ShopWebAPI) GetMenu(shopId int64) ([]*entity.GetMenuItem, int, error) {
+	url := fmt.Sprintf("%s/menu_items/list/%d", webapi.config.ShopsServiceAddress, shopId)
 	httpRequest, err := httpclient.NewHttpRequest(shopId, http.MethodGet, url)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -268,7 +273,7 @@ func (webapi *ShopWebAPI) GetMenu(shopId int64) ([]*entity.MenuItem, int, error)
 	}
 	defer res.Body.Close()
 
-	var menuItems []*entity.MenuItem
+	var menuItems []entity.GetMenuItem
 	resp, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -277,11 +282,16 @@ func (webapi *ShopWebAPI) GetMenu(shopId int64) ([]*entity.MenuItem, int, error)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	return menuItems, http.StatusOK, nil
+
+	response := make([]*entity.GetMenuItem, len(menuItems))
+	for i := 0; i < len(menuItems); i++ {
+		response[i] = &menuItems[i]
+	}
+	return response, http.StatusOK, nil
 }
 
-func (webapi *ShopWebAPI) UpdateMenuItem(id int64, req *entity.UpdateMenuItem) (*entity.MenuItem, int, error) {
-	url := fmt.Sprintf("%s/shops/menu_items/%d", webapi.config.ShopsServiceAddress, id)
+func (webapi *ShopWebAPI) UpdateMenuItem(id int64, req *entity.UpdateMenuItem) (*entity.GetMenuItem, int, error) {
+	url := fmt.Sprintf("%s/menu_items/%d", webapi.config.ShopsServiceAddress, id)
 
 	httpRequest, err := httpclient.NewHttpRequest(req, http.MethodPatch, url)
 	if err != nil {
@@ -303,7 +313,7 @@ func (webapi *ShopWebAPI) UpdateMenuItem(id int64, req *entity.UpdateMenuItem) (
 	}
 	defer res.Body.Close()
 
-	var menuItem *entity.MenuItem
+	var menuItem *entity.GetMenuItem
 	newMenuItem, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -315,8 +325,8 @@ func (webapi *ShopWebAPI) UpdateMenuItem(id int64, req *entity.UpdateMenuItem) (
 	return menuItem, http.StatusOK, nil
 }
 
-func (webapi *ShopWebAPI) GetMenuItem(id int64) (*entity.MenuItem, int, error) {
-	url := fmt.Sprintf("%s/shops/menu_items/%d", webapi.config.ShopsServiceAddress, id)
+func (webapi *ShopWebAPI) GetMenuItem(id int64) (*entity.GetMenuItem, int, error) {
+	url := fmt.Sprintf("%s/menu_items/%d", webapi.config.ShopsServiceAddress, id)
 	httpRequest, err := httpclient.NewHttpRequest(nil, http.MethodGet, url)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -337,7 +347,7 @@ func (webapi *ShopWebAPI) GetMenuItem(id int64) (*entity.MenuItem, int, error) {
 	}
 	defer res.Body.Close()
 
-	var menuItem *entity.MenuItem
+	var menuItem *entity.GetMenuItem
 	resp, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -388,7 +398,7 @@ func (webapi *ShopWebAPI) DeleteShop(id int64, user_id int64) (string, int, erro
 }
 
 func (webapi *ShopWebAPI) DeleteMenuItem(id int64) (string, int, error) {
-	url := fmt.Sprintf("%s/shops/menu_items/%d", webapi.config.ShopsServiceAddress, id)
+	url := fmt.Sprintf("%s/menu_items/%d", webapi.config.ShopsServiceAddress, id)
 	httpRequest, err := httpclient.NewHttpRequest(nil, http.MethodDelete, url)
 	if err != nil {
 		return "", http.StatusInternalServerError, err
