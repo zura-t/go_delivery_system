@@ -60,4 +60,5 @@ type UpdateMenuItem struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Price       int32  `json:"price"`
+	UserId      int64  `json:"user_id"`
 }

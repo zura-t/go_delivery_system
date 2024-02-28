@@ -330,38 +330,6 @@ paths:
       summary: Create Shop
       tags:
       - shops
-  /shops/:id:
-    get:
-      consumes:
-      - application/json
-      description: Get Shop info
-      operationId: getShop
-      parameters:
-      - in: path
-        minimum: 1
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/entity.Shop'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/v1.response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/v1.response'
-      security:
-      - BearerAuth: []
-      summary: Get Shop
-      tags:
-      - shops
   /shops/{id}:
     delete:
       consumes:
@@ -392,6 +360,37 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete Shop
+      tags:
+      - shops
+    get:
+      consumes:
+      - application/json
+      description: Get Shop info
+      operationId: getShop
+      parameters:
+      - in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Shop'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.response'
+      security:
+      - BearerAuth: []
+      summary: Get Shop
       tags:
       - shops
     patch:

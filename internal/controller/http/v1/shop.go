@@ -99,7 +99,7 @@ type IdParam struct {
 // @Failure     400 {object} response
 // @Failure     500 {object} response
 // @Security 		BearerAuth
-// @Router      /shops/:id [get]
+// @Router      /shops/{id} [get]
 func (r *shopRoutes) getShop(ctx *gin.Context) {
 	var req IdParam
 	if err := ctx.ShouldBindUri(&req); err != nil {
@@ -363,10 +363,13 @@ func (r *shopRoutes) updateMenuItem(ctx *gin.Context) {
 		return
 	}
 
+	payload := getJWTPayload(ctx)
+
 	menuItems, st, err := r.shopUsecase.UpdateMenuItem(params.Id, &entity.UpdateMenuItem{
 		Name:        req.Name,
 		Description: req.Description,
 		Price:       req.Price,
+		UserId:      payload.UserId,
 	})
 
 	if err != nil {
@@ -434,11 +437,6 @@ func (r *shopRoutes) deleteShop(ctx *gin.Context) {
 	}
 
 	payload := getJWTPayload(ctx)
-	if err := ctx.ShouldBindQuery(&req); err != nil {
-		r.logger.Error(err, "http - v1 - shop routes - deleteMenuItems")
-		errorResponse(ctx, http.StatusBadRequest, err.Error())
-		return
-	}
 
 	res, st, err := r.shopUsecase.DeleteShop(req.Id, payload.UserId)
 
@@ -471,7 +469,9 @@ func (r *shopRoutes) deleteMenuItem(ctx *gin.Context) {
 		return
 	}
 
-	res, st, err := r.shopUsecase.DeleteMenuItem(req.Id)
+	payload := getJWTPayload(ctx)
+
+	res, st, err := r.shopUsecase.DeleteMenuItem(req.Id, payload.UserId)
 
 	if err != nil {
 		r.logger.Error(err, "http - v1 - shop routes - deleteMenuItems")

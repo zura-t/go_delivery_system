@@ -247,7 +247,7 @@ func (webapi *ShopWebAPI) CreateMenu(req *entity.CreateMenuItem) ([]*entity.GetM
 	for i := 0; i < len(menuItems); i++ {
 		response[i] = &menuItems[i]
 	}
-	
+
 	return response, http.StatusOK, nil
 }
 
@@ -397,12 +397,17 @@ func (webapi *ShopWebAPI) DeleteShop(id int64, user_id int64) (string, int, erro
 	return resp, http.StatusOK, nil
 }
 
-func (webapi *ShopWebAPI) DeleteMenuItem(id int64) (string, int, error) {
+func (webapi *ShopWebAPI) DeleteMenuItem(id int64, user_id int64) (string, int, error) {
 	url := fmt.Sprintf("%s/menu_items/%d", webapi.config.ShopsServiceAddress, id)
 	httpRequest, err := httpclient.NewHttpRequest(nil, http.MethodDelete, url)
+
 	if err != nil {
 		return "", http.StatusInternalServerError, err
 	}
+
+	query := httpRequest.URL.Query()
+	query.Add("user_id", strconv.Itoa(int(user_id)))
+	httpRequest.URL.RawQuery = query.Encode()
 
 	res, err := webapi.client.Do(httpRequest)
 

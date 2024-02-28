@@ -57,6 +57,6 @@ func (uc *ShopUseCase) DeleteShop(id int64, user_id int64) (string, int, error) 
 	return uc.webapi.DeleteShop(id, user_id)
 }
 
-func (uc *ShopUseCase) DeleteMenuItem(id int64) (string, int, error) {
-	return uc.webapi.DeleteMenuItem(id)
+func (uc *ShopUseCase) DeleteMenuItem(id int64, user_id int64) (string, int, error) {
+	return uc.webapi.DeleteMenuItem(id, user_id)
 }
